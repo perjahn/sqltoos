@@ -1,0 +1,23 @@
+{
+    "dbprovider": "postgres",
+    "connstr": "Server=localhost;Database=testdb;User Id=postgres;Password=abcABC123",
+    "sql": "select * from testtable",
+    "serverurl": "http://localhost:9200",
+    "username": "",
+    "password": "",
+    "indexname": "testindex",
+    "typename": "",
+    "timestampfield": "somedate",
+    "idprefix": "",
+    "idfield": "id",
+    "toupperfields": [],
+    "tolowerfields": [],
+    "addconstantfields": [
+        "zzz=999",
+        "extradate=2022-01-01T01:02:03"
+    ],
+    "expandjsonfields": [
+        "somejsonstring"
+    ],
+    "dontescapefields": []
+}
