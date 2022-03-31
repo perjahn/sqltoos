@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,7 +14,7 @@ namespace sqltoelastic
     class Elastic
     {
         public static async Task<bool> PutIntoIndex(string serverurl, string username, string password, string indexname,
-            string timestampfield, string idprefix, string idfield, JObject[] jsonrows)
+            string timestampfield, string idfield, string idprefix, JObject[] jsonrows)
         {
             string bulkdata;
 
@@ -78,7 +79,7 @@ namespace sqltoelastic
             if (username != string.Empty && password != string.Empty)
             {
                 string credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
-                //client.Headers[HttpRequestHeader.Authorization] = $"Basic {credentials}";
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
             }
 
             string result = string.Empty;

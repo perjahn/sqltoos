@@ -1,4 +1,4 @@
---drop database testdb;
+-- drop database testdb;
 
 select name from sys.databases;
 

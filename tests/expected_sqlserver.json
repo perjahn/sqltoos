@@ -1,0 +1,68 @@
+{
+  "errors": true,
+  "items": [
+    {
+      "index": {
+        "_index": "testindex-2022.01",
+        "_type": "_doc",
+        "_id": "1",
+        "_version": 3,
+        "result": "updated",
+        "_shards": {
+          "total": 2,
+          "successful": 1,
+          "failed": 0
+        },
+        "_seq_no": 6,
+        "_primary_term": 1,
+        "status": 200
+      }
+    },
+    {
+      "index": {
+        "_index": "testindex-2022.01",
+        "_type": "_doc",
+        "_id": "2",
+        "_version": 3,
+        "result": "updated",
+        "_shards": {
+          "total": 2,
+          "successful": 1,
+          "failed": 0
+        },
+        "_seq_no": 7,
+        "_primary_term": 1,
+        "status": 200
+      }
+    },
+    {
+      "index": {
+        "_index": "testindex-2022.01",
+        "_type": "_doc",
+        "_id": "3",
+        "_version": 3,
+        "result": "updated",
+        "_shards": {
+          "total": 2,
+          "successful": 1,
+          "failed": 0
+        },
+        "_seq_no": 8,
+        "_primary_term": 1,
+        "status": 200
+      }
+    },
+    {
+      "index": {
+        "_index": "testindex-2022.01",
+        "_type": "_doc",
+        "_id": "4",
+        "status": 400,
+        "error": {
+          "type": "mapper_parsing_exception",
+          "reason": "object mapping for [somejsonstring] tried to parse field [somejsonstring] as object, but found a concrete value"
+        }
+      }
+    }
+  ]
+}

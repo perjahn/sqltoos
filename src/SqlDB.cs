@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,13 +17,13 @@ namespace sqltoelastic
     {
         public static async Task<JObject[]> GetRows(string dbprovider, string connstr, string sql,
             string[] toupperfields, string[] tolowerfields,
-            string[] addconstantfields, string[] expandjsonfields, string[] dontescapefields)
+            string[] addconstantfields, string[] expandjsonfields, string[] deescapefields)
         {
             DbProviderFactory factory = dbprovider switch
             {
-                "sqlserver" => SqlClientFactory.Instance,
                 "mysql" => MySqlClientFactory.Instance,
                 "postgres" => NpgsqlFactory.Instance,
+                "sqlserver" => SqlClientFactory.Instance,
                 _ => throw new Exception()
             };
 
@@ -45,7 +44,7 @@ namespace sqltoelastic
 
             using var reader = await cmd.ExecuteReaderAsync();
 
-            var jsonrows = await ReadData(reader, toupperfields, tolowerfields, addconstantfields, expandjsonfields, dontescapefields);
+            var jsonrows = await ReadData(reader, toupperfields, tolowerfields, addconstantfields, expandjsonfields, deescapefields);
 
             await reader.CloseAsync();
 
@@ -56,7 +55,7 @@ namespace sqltoelastic
 
         static async Task<JObject[]> ReadData(DbDataReader reader,
             string[] toupperfields, string[] tolowerfields,
-            string[] addconstantfields, string[] expandjsonfields, string[] dontescapefields)
+            string[] addconstantfields, string[] expandjsonfields, string[] deescapefields)
         {
             var addfields = addconstantfields.Where(f => f.Contains('=')).ToDictionary(f => f.Split('=')[0], f => f.Split('=')[1]);
 
@@ -73,7 +72,7 @@ namespace sqltoelastic
             {
                 var rowdata = new StringBuilder();
 
-                rowdata.Append("{");
+                rowdata.Append('{');
 
                 for (int i = 0; i < reader.FieldCount; i++)
                 {
@@ -137,7 +136,7 @@ namespace sqltoelastic
                             {
                                 data = data.ToLower();
                             }
-                            if (!dontescapefields.Contains(colname))
+                            if (!deescapefields.Contains(colname))
                             {
                                 data = data.Replace(@"\", @"\\").Replace("\"", "\\\"");
                             }
@@ -152,13 +151,13 @@ namespace sqltoelastic
 
                     if (!lastcol)
                     {
-                        rowdata.Append(",");
+                        rowdata.Append(',');
                     }
                 }
 
                 foreach (var addfield in addfields)
                 {
-                    rowdata.Append(",");
+                    rowdata.Append(',');
 
                     string addfieldname = addfield.Key;
                     string addfieldvalue = addfield.Value;
@@ -190,7 +189,6 @@ namespace sqltoelastic
                 }
 
                 rowdata.AppendLine("}");
-                //Console.WriteLine($">>>{rowdata}<<<");
 
                 JObject jsonrow = JObject.Parse(rowdata.ToString());
                 jsonrows.Add(jsonrow);

@@ -2,7 +2,7 @@ select name from sys.databases;
 
 use testdb;
 
---drop table testtable;
+-- drop table testtable;
 
 create table testtable
 (
