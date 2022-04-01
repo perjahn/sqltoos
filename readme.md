@@ -41,7 +41,7 @@ Example files: ```configMysql.json```, ```configPostgres.json``` and ```configSq
 ## Incremental scheduled run
 
 A common use case is to only copy newly added/modified rows in a sql database, to elasticsearch.
-Please setup cron to run sqltoelastic for this,
+Please setup [cron](https://en.wikipedia.org/wiki/Cron) to run sqltoelastic for this,
 in combination with a sql query that includes a where condition using a date column relative to the current date,
 perhaps with some overlap to prevent jitter timing problems.
 Of course also make sure the id field is consistent to prevent duplicates in elasticsearch.
