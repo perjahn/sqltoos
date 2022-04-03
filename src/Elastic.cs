@@ -70,7 +70,6 @@ namespace sqltoelastic
                 await ImportRows(client, address, username, password, bulkdata);
             }
 
-            Log("Done!");
             return true;
         }
 

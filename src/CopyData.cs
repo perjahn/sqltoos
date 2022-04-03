@@ -23,6 +23,8 @@ namespace sqltoelastic
 
             JObject[] jsonrows;
 
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+
             jsonrows = await SqlDB.GetRows(dbprovider, connstr, sql, toupperfields, tolowerfields,
                 addconstantfields, expandjsonfields, deescapefields);
 
@@ -37,6 +39,10 @@ namespace sqltoelastic
             string idprefix = config["idprefix"]?.Value<string>() ?? string.Empty;
 
             bool result = await Elastic.PutIntoIndex(serverurl, username, password, indexname, timestampfield, idfield, idprefix, jsonrows);
+
+            Log($"Time: {watch.Elapsed}");
+
+            Log("Done!");
 
             return result;
         }

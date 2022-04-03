@@ -21,4 +21,4 @@ done
 
 echo 'Done!'
 
-/usr/bin/mysql -pabcABC123 < /tests/testdataMysql.sql
+/usr/bin/mysql -pabcABC123 < /tests/testdataMysql.temp.sql

@@ -53,16 +53,36 @@ function Main() {
     Log "Running containers:"
     docker ps
 
+
+    [string[]] $filenames = "testdataMysql.sql", "testdataPostgres2.sql", "testdataSqlserver2.sql"
+
+    foreach ($filename in $filenames) {
+        $sb = New-Object Text.StringBuilder
+
+        [string] $header = Get-Content (Join-Path "tests" $filename) -Raw
+        $sb.AppendLine($header) | Out-Null
+
+        for ([int] $i = 0; $i -lt 10000; $i++) {
+            [string] $datarow = "insert into testtable (somestring, somejsonstring, someint, somedate) values (null, 'abc$($i)', $($i + 1000), '2022-02-01 01:02:03');"
+            $sb.AppendLine($datarow) | Out-Null
+        }
+
+        [string] $outfile = Join-Path "tests" ([IO.Path]::ChangeExtension($filename, ".temp.sql"))
+        Log "Using temporary sql script: '$outfile'"
+        Set-Content $outfile $sb.ToString() -NoNewline
+    }
+
+
     Log "Running mysql scripts:"
-    docker exec $containerMysql /tests/setupmysql.sh
+    docker exec $containerMysql "/tests/setupmysql.sh"
 
     Log "Running postgres scripts:"
-    docker exec $containerPostgres /usr/bin/psql -U postgres -f /tests/testdataPostgres1.sql
-    docker exec $containerPostgres /usr/bin/psql -U postgres -d testdb -f /tests/testdataPostgres2.sql
+    docker exec $containerPostgres "/usr/bin/psql" -U "postgres" -f "/tests/testdataPostgres1.sql"
+    docker exec $containerPostgres "/usr/bin/psql" -U "postgres" -d "testdb" -f "/tests/testdataPostgres2.temp.sql"
 
     Log "Running sqlserver scripts:"
-    docker exec $containerSqlserver /opt/mssql-tools/bin/sqlcmd -U sa -P abcABC123 -i /tests/testdataSqlserver1.sql
-    docker exec $containerSqlserver /opt/mssql-tools/bin/sqlcmd -U sa -P abcABC123 -i /tests/testdataSqlserver2.sql
+    docker exec $containerSqlserver "/opt/mssql-tools/bin/sqlcmd" -U "sa" -P "abcABC123" -i "/tests/testdataSqlserver1.sql"
+    docker exec $containerSqlserver "/opt/mssql-tools/bin/sqlcmd" -U "sa" -P "abcABC123" -i "/tests/testdataSqlserver2.temp.sql"
 
     Log "Waiting for elasticsearch startup..."
     sleep 15
