@@ -26,7 +26,7 @@ namespace sqltoelastic
 
             var rows = new StringBuilder();
 
-            foreach (JObject jsonrow in jsonrows)
+            foreach (var jsonrow in jsonrows)
             {
                 jsonrow["@timestamp"] = jsonrow[timestampfield];
                 DateTime timestamp;
@@ -73,6 +73,8 @@ namespace sqltoelastic
             return true;
         }
 
+        static int bulkdataCounter = 0;
+
         static async Task ImportRows(HttpClient client, string address, string username, string password, string bulkdata)
         {
             if (username != string.Empty && password != string.Empty)
@@ -84,6 +86,8 @@ namespace sqltoelastic
             string result = string.Empty;
             try
             {
+                File.WriteAllText($"bulkdata_{bulkdataCounter++}.txt", bulkdata);
+
                 var content = new StringContent(bulkdata, Encoding.UTF8, "application/json");
                 var response = await client.PostAsync(address, content);
                 result = await response.Content.ReadAsStringAsync();
