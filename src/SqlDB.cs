@@ -8,7 +8,6 @@ using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace sqltoelastic
@@ -70,9 +69,7 @@ namespace sqltoelastic
 
             while (await reader.ReadAsync())
             {
-                var rowdata = new StringBuilder();
-
-                rowdata.Append('{');
+                var jsonrow = new JObject();
 
                 for (int i = 0; i < reader.FieldCount; i++)
                 {
@@ -86,111 +83,108 @@ namespace sqltoelastic
 
                     if (reader.GetFieldType(i) == typeof(DateTimeOffset))
                     {
-                        DateTimeOffset? data = reader.GetValue(i) as DateTimeOffset?;
-                        rowdata.Append($"\"{colname}\":\"{(data == null ? "null" : data.Value.ToString("s"))}\"");
+                        if (reader.GetValue(i) is DateTimeOffset data)
+                        {
+                            jsonrow[colname] = data;
+                        }
                     }
                     else if (reader.GetFieldType(i) == typeof(DateTime))
                     {
-                        DateTime? data = reader.GetValue(i) as DateTime?;
-                        rowdata.Append($"\"{colname}\":\"{(data == null ? "null" : data.Value.ToString("s"))}\"");
+                        if (reader.GetValue(i) is DateTime data)
+                        {
+                            jsonrow[colname] = data;
+                        }
                     }
                     else if (reader.GetFieldType(i) == typeof(short))
                     {
-                        short? data = reader.GetValue(i) as short?;
-                        rowdata.Append($"\"{colname}\":{(data == null ? "\"null\"" : data.Value.ToString())}");
+                        if (reader.GetValue(i) is short data)
+                        {
+                            jsonrow[colname] = data;
+                        }
                     }
                     else if (reader.GetFieldType(i) == typeof(int))
                     {
-                        int? data = reader.GetValue(i) as int?;
-                        rowdata.Append($"\"{colname}\":{(data == null ? "\"null\"" : data.Value.ToString())}");
+                        if (reader.GetValue(i) is int data)
+                        {
+                            jsonrow[colname] = data;
+                        }
                     }
                     else if (reader.GetFieldType(i) == typeof(long))
                     {
-                        long? data = reader.GetValue(i) as long?;
-                        rowdata.Append($"\"{colname}\":{(data == null ? "\"null\"" : data.Value.ToString())}");
+                        if (reader.GetValue(i) is long data)
+                        {
+                            jsonrow[colname] = data;
+                        }
                     }
                     else if (reader.GetValue(i) is string data)
                     {
-                        if (expandjsonfields.Contains(colname))
+                        if (data != null)
                         {
-                            try
+                            if (expandjsonfields.Contains(colname))
                             {
-                                JObject jsondata = JObject.Parse(data);
-                                data = jsondata.ToString(Formatting.Indented);
-
-                                rowdata.Append($"\"{colname}\":{data}");
+                                try
+                                {
+                                    JObject jsondata = JObject.Parse(data);
+                                    jsonrow[colname] = jsondata;
+                                }
+                                catch (JsonReaderException)
+                                {
+                                    // Parse. Or Parse not. There is no TryParse. :(
+                                    jsonrow[colname] = data;
+                                }
                             }
-                            catch (JsonReaderException)
+                            else
                             {
-                                // Parse. Or Parse not. There is no TryParse. :(
-                                rowdata.Append($"\"{colname}\":\"{data}\"");
+                                if (toupperfields.Contains(colname))
+                                {
+                                    data = data.ToUpper();
+                                }
+                                if (tolowerfields.Contains(colname))
+                                {
+                                    data = data.ToLower();
+                                }
+                                if (!deescapefields.Contains(colname))
+                                {
+                                    data = data.Replace(@"\", @"\\").Replace("\"", "\\\"");
+                                }
+
+                                jsonrow[colname] = data;
                             }
                         }
-                        else
-                        {
-                            if (toupperfields.Contains(colname))
-                            {
-                                data = data.ToUpper();
-                            }
-                            if (tolowerfields.Contains(colname))
-                            {
-                                data = data.ToLower();
-                            }
-                            if (!deescapefields.Contains(colname))
-                            {
-                                data = data.Replace(@"\", @"\\").Replace("\"", "\\\"");
-                            }
-
-                            rowdata.Append($"\"{colname}\":\"{data}\"");
-                        }
-                    }
-                    else
-                    {
-                        rowdata.Append($"\"{colname}\":null");
-                    }
-
-                    if (!lastcol)
-                    {
-                        rowdata.Append(',');
                     }
                 }
 
                 foreach (var addfield in addfields)
                 {
-                    rowdata.Append(',');
-
                     string addfieldname = addfield.Key;
                     string addfieldvalue = addfield.Value;
 
                     if (DateTimeOffset.TryParse(addfieldvalue, out DateTimeOffset valuedatetimeoffset))
                     {
-                        rowdata.Append($"\"{addfieldname}\":\"{valuedatetimeoffset.ToString("s")}\"");
+                        jsonrow[addfieldname] = valuedatetimeoffset;
                     }
                     else if (DateTime.TryParse(addfieldvalue, out DateTime valuedatetime))
                     {
-                        rowdata.Append($"\"{addfieldname}\":\"{valuedatetime.ToString("s")}\"");
+                        jsonrow[addfieldname] = valuedatetime;
                     }
                     else if (short.TryParse(addfieldvalue, out short valueshort))
                     {
-                        rowdata.Append($"\"{addfieldname}\":{valueshort}");
+                        jsonrow[addfieldname] = valueshort;
                     }
                     else if (int.TryParse(addfieldvalue, out int valueint))
                     {
-                        rowdata.Append($"\"{addfieldname}\":{valueint}");
+                        jsonrow[addfieldname] = valueint;
                     }
                     else if (long.TryParse(addfieldvalue, out long valuelong))
                     {
-                        rowdata.Append($"\"{addfieldname}\":{valuelong}");
+                        jsonrow[addfieldname] = valuelong;
                     }
                     else
                     {
-                        rowdata.Append($"\"{addfieldname}\":\"{addfieldvalue}\"");
+                        jsonrow[addfieldname] = addfieldvalue;
                     }
                 }
 
-                rowdata.AppendLine("}");
-
-                JObject jsonrow = JObject.Parse(rowdata.ToString());
                 jsonrows.Add(jsonrow);
             }
 
