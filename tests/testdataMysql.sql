@@ -1,5 +1,8 @@
 -- drop database testdb;
 
+alter user 'root'@'%' identified with mysql_native_password by 'abcABC123';
+flush privileges;
+
 create database testdb;
 
 show databases;
