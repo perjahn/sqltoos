@@ -13,7 +13,7 @@
     "tolowerfields": [],
     "addconstantfields": [
         "zzz=999",
-        "extradate=2022-01-01T01:02:03"
+        "extradate=2022-01-01T01:02:03+01:00"
     ],
     "expandjsonfields": [
         "somejsonstring"

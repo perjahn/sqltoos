@@ -81,16 +81,16 @@ namespace sqltoelastic
                         continue;
                     }
 
-                    if (reader.GetFieldType(i) == typeof(DateTimeOffset))
+                    if (reader.GetFieldType(i) == typeof(DateTime))
                     {
-                        if (reader.GetValue(i) is DateTimeOffset data)
+                        if (reader.GetValue(i) is DateTime data)
                         {
                             jsonrow[colname] = data;
                         }
                     }
-                    else if (reader.GetFieldType(i) == typeof(DateTime))
+                    else if (reader.GetFieldType(i) == typeof(DateTimeOffset))
                     {
-                        if (reader.GetValue(i) is DateTime data)
+                        if (reader.GetValue(i) is DateTimeOffset data)
                         {
                             jsonrow[colname] = data;
                         }
@@ -159,13 +159,13 @@ namespace sqltoelastic
                     string addfieldname = addfield.Key;
                     string addfieldvalue = addfield.Value;
 
-                    if (DateTimeOffset.TryParse(addfieldvalue, out DateTimeOffset valuedatetimeoffset))
-                    {
-                        jsonrow[addfieldname] = valuedatetimeoffset;
-                    }
-                    else if (DateTime.TryParse(addfieldvalue, out DateTime valuedatetime))
+                    if (DateTime.TryParse(addfieldvalue, out DateTime valuedatetime))
                     {
                         jsonrow[addfieldname] = valuedatetime;
+                    }
+                    else if (DateTimeOffset.TryParse(addfieldvalue, out DateTimeOffset valuedatetimeoffset))
+                    {
+                        jsonrow[addfieldname] = valuedatetimeoffset;
                     }
                     else if (short.TryParse(addfieldvalue, out short valueshort))
                     {

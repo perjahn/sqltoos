@@ -21,7 +21,7 @@ insert into testtable (somestring, somejsonstring, someint, somedate)
 values ('aaa111', null, 111, '2022-01-02 01:02:03');
 
 insert into testtable (somestring, somejsonstring, someint, somedate)
-values (concat('bbb', char(10), 'ccc', char(13), '\111ddd"222'), null, 222, '2022-01-01 01:02:04');
+values (concat('bbb', char(10), 'ccc', char(13), '\\111ddd"222'), null, 222, '2022-01-01 01:02:04');
 
 insert into testtable (somestring, somejsonstring, someint, somedate)
 values (null, '{"ccc":"aaa","ddd":111,"eee":true,"fff":null}', 333, '2022-01-01 01:02:05');

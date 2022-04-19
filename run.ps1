@@ -62,9 +62,9 @@ function Main() {
         [string] $header = Get-Content (Join-Path "tests" $filename) -Raw
         $sb.AppendLine($header) | Out-Null
 
-        for ([int] $i = 0; $i -lt 10000; $i++) {
+        for ([int] $i = 0; $i -lt 10; $i++) {
             [string] $datarow = "insert into testtable (somestring, somejsonstring, someint, somedate) values (null, 'abc$($i)', $($i + 1000), '2022-02-01 01:02:03');"
-            $sb.AppendLine($datarow) | Out-Null
+#            $sb.AppendLine($datarow) | Out-Null
         }
 
         [string] $outfile = Join-Path "tests" ([IO.Path]::ChangeExtension($filename, ".temp.sql"))
