@@ -1,19 +1,25 @@
 #!/bin/bash
 echo 'Setting up mysql...'
 
-until [[ -f /run/mysqld/mysqld.pid && $(du -b /run/mysqld/mysqld.pid | awk '{print $1}') -eq 2 ]]
+sleep 5
+
+pushd /run/mysqld
+
+until [[ \
+  -e mysqld.pid && $(du -b mysqld.pid | awk '{print $1}') -eq 2 && \
+  -e mysqld.sock && $(du -b mysqld.sock | awk '{print $1}') -eq 0 && \
+  -e mysqld.sock.lock && $(du -b mysqld.sock.lock | awk '{print $1}') -eq 2 && \
+  -e mysqlx.sock && $(du -b mysqlx.sock | awk '{print $1}') -eq 0 && \
+  -e mysqlx.sock.lock && $(du -b mysqlx.sock.lock | awk '{print $1}') -eq 2 ]]
 do
+  ls -la
   sleep 1
   echo 1
 done
 
-sleep 5
+popd
 
-until [[ -f /run/mysqld/mysqlx.sock.lock && $(du -b /run/mysqld/mysqlx.sock.lock | awk '{print $1}') -eq 3 ]]
-do
-  sleep 1
-  echo 3
-done
+sleep 5
 
 echo 'mysql started.'
 

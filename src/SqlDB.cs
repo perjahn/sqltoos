@@ -74,7 +74,6 @@ namespace sqltoelastic
                 for (int i = 0; i < reader.FieldCount; i++)
                 {
                     string colname = columns[i];
-                    bool lastcol = i == reader.FieldCount - 1;
 
                     if (reader.IsDBNull(i))
                     {
