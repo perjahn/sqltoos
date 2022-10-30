@@ -1,22 +1,24 @@
 {
-    "dbprovider": "postgres",
-    "connstr": "Server=localhost;Database=testdb;User Id=postgres;Password=abcABC123",
-    "sql": "select * from testtable",
-    "serverurl": "http://localhost:9200",
-    "username": "",
-    "password": "",
-    "indexname": "testindex",
-    "timestampfield": "somedate",
-    "idfield": "id",
-    "idprefix": "",
-    "toupperfields": [],
-    "tolowerfields": [],
-    "addconstantfields": [
-        "zzz=999",
-        "extradate=2022-01-01T01:02:03"
-    ],
-    "expandjsonfields": [
-        "somejsonstring"
-    ],
-    "deescapefields": []
+  "dbprovider": "postgres",
+  "connstr": "Server=localhost;Database=testdb;User Id=postgres;Password=abcABC123",
+  "sql": "select * from testtable",
+  "elasticserverurl": "https://localhost:9200",
+  "cacertfile": "http_ca.crt",
+  "allowinvalidhttpscert": false,
+  "username": "elastic",
+  "password": "abcABC123",
+  "indexname": "testindex",
+  "timestampfield": "somedate",
+  "idfield": "id",
+  "idprefix": "",
+  "toupperfields": [],
+  "tolowerfields": [],
+  "addconstantfields": [
+    "zzz=999",
+    "extradate=2022-01-01T01:02:03"
+  ],
+  "expandjsonfields": [
+    "somejsonstring"
+  ],
+  "deescapefields": []
 }

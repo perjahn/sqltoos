@@ -6,6 +6,8 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,12 +15,30 @@ namespace sqltoelastic
 {
     class Elastic
     {
-        public static async Task<bool> PutIntoIndex(string serverurl, string username, string password, string indexname,
+        public static async Task<bool> PutIntoIndex(string serverurl, string cacertfile, bool allowInvalidHttpsCert, string username, string password, string indexname,
             string timestampfield, string idfield, string idprefix, JObject[] jsonrows)
         {
             string bulkdata;
 
-            using var client = new HttpClient();
+            using var handler = new HttpClientHandler();
+
+            if (allowInvalidHttpsCert)
+            {
+                handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+            }
+            else if (cacertfile != string.Empty)
+            {
+                var cacert = new X509Certificate2(cacertfile);
+
+                handler.ServerCertificateCustomValidationCallback = (
+                    HttpRequestMessage message,
+                    X509Certificate2? cert,
+                    X509Chain? chain,
+                    SslPolicyErrors errors
+                ) => chain != null && chain.ChainElements.Count == 2 && chain.ChainElements[1].Certificate.RawData.SequenceEqual(cacert.RawData);
+            }
+
+            using var client = allowInvalidHttpsCert || cacertfile != string.Empty ? new HttpClient(handler) : new HttpClient();
 
             int rownum = 0;
 

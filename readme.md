@@ -23,7 +23,9 @@ Example files: ```configMysql.json```, ```configPostgres.json``` and ```configSq
   "dbprovider": "",         # Name of database provider. Valid values: mysql/postgres/sqlserver
   "connstr": "",            # Database connection string.
   "sql": "",                # Select query.
-  "serverurl": "",          # Url to elasticsearch. Example: http://localhost:9200
+  "elasticserverurl": "",   # Url to elasticsearch. Example: http://localhost:9200
+  "cacertfile": "",         # Optional. Assume https cert is ok, if signed using this ca cert file.
+  "allowinvalidhttpscert": false,  # Optional, default false. Don't validate https cert.
   "username": "",           # Elasticsearch username.
   "password": "",           # Elasticsearch password.
   "indexname": "",          # Prefix of elasticsearch index, will be composed to: indexname-{yyyy.MM}

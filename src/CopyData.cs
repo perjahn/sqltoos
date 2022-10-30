@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -23,14 +24,16 @@ namespace sqltoelastic
 
             JObject[] jsonrows;
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var watch = Stopwatch.StartNew();
 
             jsonrows = await SqlDB.GetRows(dbprovider, connstr, sql, toupperfields, tolowerfields,
                 addconstantfields, expandjsonfields, deescapefields);
 
             Log($"Got {jsonrows.Length} rows.");
 
-            string serverurl = config["serverurl"]?.Value<string>() ?? string.Empty;
+            string serverurl = config["elasticserverurl"]?.Value<string>() ?? string.Empty;
+            string cacertfile = config["cacertfile"]?.Value<string>() ?? string.Empty;
+            bool allowInvalidHttpsCert = config["allowinvalidhttpscert"]?.Value<bool>() ?? false;
             string username = config["username"]?.Value<string>() ?? string.Empty;
             string password = config["password"]?.Value<string>() ?? string.Empty;
             string indexname = config["indexname"]?.Value<string>() ?? string.Empty;
@@ -38,7 +41,7 @@ namespace sqltoelastic
             string idfield = config["idfield"]?.Value<string>() ?? string.Empty;
             string idprefix = config["idprefix"]?.Value<string>() ?? string.Empty;
 
-            bool result = await Elastic.PutIntoIndex(serverurl, username, password, indexname, timestampfield, idfield, idprefix, jsonrows);
+            bool result = await Elastic.PutIntoIndex(serverurl, cacertfile, allowInvalidHttpsCert, username, password, indexname, timestampfield, idfield, idprefix, jsonrows);
 
             Log($"Time: {watch.Elapsed}");
 

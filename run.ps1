@@ -10,48 +10,49 @@ function Main() {
     [string] $curdir = (Get-Location).Path
     [string] $bindmount = "$($curdir)/tests:/tests"
 
-    [string] $containerImage = "mysql"
-    [string] $containerMysql = $(docker ps | grep $containerImage | awk '{print $1}')
+    [string] $containerImageMysql = "mysql"
+    [string] $containerImagePostgres = "postgres"
+    [string] $containerImageSqlserver = "mcr.microsoft.com/azure-sql-edge"
+    [string] $containerImageElasticsearch = "elasticsearch:8.4.3"
+
+    [string] $containerMysql = $(docker ps | grep $containerImageMysql | awk '{print $1}')
     if ($containerMysql) {
         Log "Reusing existing mysql container: $containerMysql"
     }
     else {
-        Log "Starting $($containerImage):"
-        docker run -d -p 3306:3306 -v $bindmount -e 'MYSQL_ROOT_PASSWORD=abcABC123' $containerImage
-        [string] $containerMysql = $(docker ps | grep $containerImage | awk '{print $1}')
+        Log "Starting $($containerImageMysql):"
+        docker run -d -p 3306:3306 -v $bindmount -e 'MYSQL_ROOT_PASSWORD=abcABC123' $containerImageMysql
+        [string] $containerMysql = $(docker ps | grep $containerImageMysql | awk '{print $1}')
     }
 
-    [string] $containerImage = "postgres"
-    [string] $containerPostgres = $(docker ps | grep $containerImage | awk '{print $1}')
+    [string] $containerPostgres = $(docker ps | grep $containerImagePostgres | awk '{print $1}')
     if ($containerPostgres) {
         Log "Reusing existing postgres container: $containerPostgres"
     }
     else {
-        Log "Starting $($containerImage):"
-        docker run -d -p 5432:5432 -v $bindmount -e 'POSTGRES_PASSWORD=abcABC123' $containerImage
-        [string] $containerPostgres = $(docker ps | grep $containerImage | awk '{print $1}')
+        Log "Starting $($containerImagePostgres):"
+        docker run -d -p 5432:5432 -v $bindmount -e 'POSTGRES_PASSWORD=abcABC123' $containerImagePostgres
+        [string] $containerPostgres = $(docker ps | grep $containerImagePostgres | awk '{print $1}')
     }
 
-    [string] $containerImage = "mcr.microsoft.com/azure-sql-edge"
-    [string] $containerSqlserver = $(docker ps | grep $containerImage | awk '{print $1}')
+    [string] $containerSqlserver = $(docker ps | grep $containerImageSqlserver | awk '{print $1}')
     if ($containerSqlserver) {
         Log "Reusing existing sqlserver container: $containerSqlserver"
     }
     else {
-        Log "Starting $($containerImage):"
-        docker run -d -p 1433:1433 -v $bindmount -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=abcABC123' $containerImage
-        [string] $containerSqlserver = $(docker ps | grep $containerImage | awk '{print $1}')
+        Log "Starting $($containerImageSqlserver):"
+        docker run -d -p 1433:1433 -v $bindmount -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=abcABC123' $containerImageSqlserver
+        [string] $containerSqlserver = $(docker ps | grep $containerImageSqlserver | awk '{print $1}')
     }
 
-    [string] $containerImage = "elasticsearch:7.17.2"
-    [string] $containerElasticsearch = $(docker ps | grep $containerImage | awk '{print $1}')
+    [string] $containerElasticsearch = $(docker ps | grep $containerImageElasticsearch | awk '{print $1}')
     if ($containerElasticsearch) {
         Log "Reusing existing elasticsearch container: $containerElasticsearch"
     }
     else {
-        Log "Starting $($containerImage):"
-        docker run -d -p 9200:9200 -e 'discovery.type=single-node' -e 'bootstrap.memory_lock=true' -e 'ES_JAVA_OPTS=-Xms1024m -Xmx1024m' $containerImage
-        [string] $containerElasticsearch = $(docker ps | grep $containerImage | awk '{print $1}')
+        Log "Starting $($containerImageElasticsearch):"
+        docker run -d -p 9200:9200 -v $bindmount -e 'discovery.type=single-node' -e 'ELASTIC_PASSWORD=abcABC123' $containerImageElasticsearch
+        [string] $containerElasticsearch = $(docker ps | grep $containerImageElasticsearch | awk '{print $1}')
     }
 
     Log "Running containers:"
@@ -67,7 +68,22 @@ function Main() {
     docker exec $containerSqlserver /tests/setupsqlserver.sh
 
     Log "Waiting for elasticsearch startup..."
-    sleep 15
+    [int] $seconds = 0
+    do {
+        docker cp "$($containerElasticsearch):/usr/share/elasticsearch/config/certs/http_ca.crt" .
+        Log ($seconds++)
+        if ($seconds -eq 300 ) {
+            Log "Couldn't retrieve elasticsearch ca cert."
+            exit 1
+        }
+        Start-Sleep 1
+    }
+    while (!([IO.File]::Exists("http_ca.crt")) -or (dir http_ca.crt).Length -eq 0)
+    Log ("Got elasticsearch cert: $((dir http_ca.crt).Length) bytes file.")
+
+    Start-Sleep 30
+
+    [bool] $testfail = $false
 
     Log "Importing mysql:"
     dotnet run --project src configMysql.json
@@ -75,6 +91,7 @@ function Main() {
     diff result_mysql.json tests/expected_mysql.json
     if (!$?) {
         Log "Error: mysql."
+        $testfail = $true
     }
 
     Log "Importing postgres:"
@@ -83,6 +100,7 @@ function Main() {
     diff result_postgres.json tests/expected_postgres.json
     if (!$?) {
         Log "Error: postgres."
+        $testfail = $true
     }
 
     Log "Importing sqlserver:"
@@ -91,6 +109,11 @@ function Main() {
     diff result_sqlserver.json tests/expected_sqlserver.json
     if (!$?) {
         Log "Error: sqlserver."
+        $testfail = $true
+    }
+
+    if ($testfail) {
+        exit 1
     }
 }
 
