@@ -1,7 +1,6 @@
+[![Build](https://github.com/perjahn/sqltoelastic/actions/workflows/build.yml/badge.svg)](https://github.com/perjahn/sqltoelastic/actions/workflows/build.yml)
+
 sqltoelastic - cli tool for exporting data from relation databases and importing into elasticsearch.
-
-
-Github actions: [![Build](https://github.com/perjahn/sqltoelastic/workflows/Build/badge.svg)](https://github.com/perjahn/sqltoelastic/actions?query=workflow%3A%22Build%22)
 
 ## Usage
 

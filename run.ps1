@@ -13,7 +13,7 @@ function Main() {
     [string] $containerImageMysql = "mysql"
     [string] $containerImagePostgres = "postgres"
     [string] $containerImageSqlserver = "mcr.microsoft.com/azure-sql-edge"
-    [string] $containerImageElasticsearch = "elasticsearch:8.5.0"
+    [string] $containerImageElasticsearch = "elasticsearch:8.11.0"
 
     [string] $containerMysql = $(docker ps | grep $containerImageMysql | awk '{print $1}')
     if ($containerMysql) {
@@ -54,6 +54,8 @@ function Main() {
         docker run -d -p 9200:9200 -v $bindmount -e 'discovery.type=single-node' -e 'ELASTIC_PASSWORD=abcABC123' $containerImageElasticsearch
         [string] $containerElasticsearch = $(docker ps | grep $containerImageElasticsearch | awk '{print $1}')
     }
+
+    Download-SqlCmd
 
     Log "Running containers:"
     docker ps
@@ -115,6 +117,24 @@ function Main() {
     if ($testfail) {
         exit 1
     }
+}
+
+function Download-SqlCmd() {
+    [string] $arch = $(uname -m)
+    if ($arch -ne "arm64" -and $arch -ne "aarch64") {
+        return
+    }
+    $releasesurl = 'https://api.github.com/repos/microsoft/go-sqlcmd/releases/latest'
+    $jqpattern = '.assets[] | select(.name|test("^sqlcmd-v[0-9\\.]+-linux-arm64\\.tar\\.bz2$")) | .browser_download_url'
+    $asseturl = $(curl -s "$releasesurl" | jq "$jqpattern" -r)
+    $filename = $(basename "$asseturl")
+    Log "Downloading: '$asseturl' -> '$filename'"
+    curl -Ls "$asseturl" -o "$filename"
+    tar xf "$filename"
+    rm "$filename"
+    rm NOTICE.md
+    rm sqlcmd_debug
+    mv sqlcmd tests
 }
 
 function Log($message) {

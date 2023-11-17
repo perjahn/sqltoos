@@ -55,8 +55,8 @@
         "_id": "4",
         "status": 400,
         "error": {
-          "type": "mapper_parsing_exception",
-          "reason": "object mapping for [somejsonstring] tried to parse field [somejsonstring] as object, but found a concrete value"
+          "type": "document_parsing_exception",
+          "reason": "[1:26] object mapping for [somejsonstring] tried to parse field [somejsonstring] as object, but found a concrete value"
         }
       }
     }
