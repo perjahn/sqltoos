@@ -13,7 +13,7 @@ function Main() {
     [string] $containerImageMysql = "mysql"
     [string] $containerImagePostgres = "postgres"
     [string] $containerImageSqlserver = "mcr.microsoft.com/azure-sql-edge"
-    [string] $containerImageElasticsearch = "elasticsearch:8.11.3"
+    [string] $containerImageElasticsearch = "elasticsearch:8.13.4"
 
     [string] $containerMysql = $(docker ps | grep $containerImageMysql | awk '{print $1}')
     if ($containerMysql) {
