@@ -26,12 +26,7 @@ namespace sqltoelastic
                 _ => throw new Exception()
             };
 
-            using DbConnection? cn = factory.CreateConnection();
-            if (cn == null)
-            {
-                throw new Exception();
-            }
-
+            using var cn = factory.CreateConnection() ?? throw new Exception();
             cn.ConnectionString = connstr;
             await cn.OpenAsync();
 

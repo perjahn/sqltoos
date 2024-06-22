@@ -11,7 +11,7 @@ else
   echo 'Assuming sqlcmd is in the path.'
 fi
 
-sqlcmd -U sa -P abcABC123 -i /tests/testdataSqlserver1.sql
-sqlcmd -U sa -P abcABC123 -i /tests/testdataSqlserver2.sql
+sqlcmd -U sa -P $SA_PASSWORD -i /tests/testdataSqlserver1.sql
+sqlcmd -U sa -P $SA_PASSWORD -i /tests/testdataSqlserver2.sql
 
 echo 'Done!'

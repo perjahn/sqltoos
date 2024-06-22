@@ -23,6 +23,6 @@ sleep 5
 
 echo 'mysql started.'
 
-/usr/bin/mysql -pabcABC123 < /tests/testdataMysql.sql
+LD_PRELOAD=/tests/isatty.so /usr/bin/mysql -p$MYSQL_ROOT_PASSWORD < /tests/testdataMysql.sql
 
 echo 'Done!'

@@ -3,6 +3,9 @@ Set-StrictMode -v latest
 $ErrorActionPreference = "Stop"
 
 function Main() {
+    [string] $password = Generate-AlphanumericPassword 20
+    Update-Configfiles $password
+
     docker ps | grep -v "^CONTAINER" | awk '{print $1}' | xargs -r docker stop
 
     docker ps
@@ -12,8 +15,8 @@ function Main() {
 
     [string] $containerImageMysql = "mysql"
     [string] $containerImagePostgres = "postgres"
-    [string] $containerImageSqlserver = "mcr.microsoft.com/azure-sql-edge"
-    [string] $containerImageElasticsearch = "elasticsearch:8.13.4"
+    [string] $containerImageSqlserver = "mcr.microsoft.com/mssql/server:2022-latest"
+    [string] $containerImageElasticsearch = "elasticsearch:8.14.1"
 
     [string] $containerMysql = $(docker ps | grep $containerImageMysql | awk '{print $1}')
     if ($containerMysql) {
@@ -21,7 +24,7 @@ function Main() {
     }
     else {
         Log "Starting $($containerImageMysql):"
-        docker run -d -p 3306:3306 -v $bindmount -e 'MYSQL_ROOT_PASSWORD=abcABC123' $containerImageMysql
+        docker run -d -p 3306:3306 -v $bindmount -e "MYSQL_ROOT_PASSWORD=$password" $containerImageMysql
         [string] $containerMysql = $(docker ps | grep $containerImageMysql | awk '{print $1}')
     }
 
@@ -31,7 +34,7 @@ function Main() {
     }
     else {
         Log "Starting $($containerImagePostgres):"
-        docker run -d -p 5432:5432 -v $bindmount -e 'POSTGRES_PASSWORD=abcABC123' $containerImagePostgres
+        docker run -d -p 5432:5432 -v $bindmount -e "POSTGRES_PASSWORD=$password" $containerImagePostgres
         [string] $containerPostgres = $(docker ps | grep $containerImagePostgres | awk '{print $1}')
     }
 
@@ -41,7 +44,7 @@ function Main() {
     }
     else {
         Log "Starting $($containerImageSqlserver):"
-        docker run -d -p 1433:1433 -v $bindmount -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=abcABC123' $containerImageSqlserver
+        docker run -d -p 1433:1433 -v $bindmount -e 'ACCEPT_EULA=Y' -e "SA_PASSWORD=$password" $containerImageSqlserver
         [string] $containerSqlserver = $(docker ps | grep $containerImageSqlserver | awk '{print $1}')
     }
 
@@ -51,11 +54,14 @@ function Main() {
     }
     else {
         Log "Starting $($containerImageElasticsearch):"
-        docker run -d -p 9200:9200 -v $bindmount -e 'discovery.type=single-node' -e 'ELASTIC_PASSWORD=abcABC123' $containerImageElasticsearch
+        docker run -d -p 9200:9200 -v $bindmount -e 'discovery.type=single-node' -e "ELASTIC_PASSWORD=$password" $containerImageElasticsearch
         [string] $containerElasticsearch = $(docker ps | grep $containerImageElasticsearch | awk '{print $1}')
     }
 
     Download-SqlCmd
+    Compile-Isatty
+
+    Start-Sleep 30
 
     Log "Running containers:"
     docker ps
@@ -82,8 +88,6 @@ function Main() {
     }
     while (!([IO.File]::Exists("http_ca.crt")) -or (dir http_ca.crt).Length -eq 0)
     Log ("Got elasticsearch cert: $((dir http_ca.crt).Length) bytes file.")
-
-    Start-Sleep 30
 
     [bool] $testfail = $false
 
@@ -114,6 +118,8 @@ function Main() {
         $testfail = $true
     }
 
+    Update-Configfiles ""
+
     if ($testfail) {
         exit 1
     }
@@ -125,7 +131,7 @@ function Download-SqlCmd() {
         return
     }
     $releasesurl = 'https://api.github.com/repos/microsoft/go-sqlcmd/releases/latest'
-    $jqpattern = '.assets[] | select(.name|test("^sqlcmd-v[0-9\\.]+-linux-arm64\\.tar\\.bz2$")) | .browser_download_url'
+    $jqpattern = '.assets[] | select(.name|test("^sqlcmd-v[0-9\\.]+-linux-' + $arch + '\\.tar\\.bz2$")) | .browser_download_url'
     $asseturl = $(curl -s "$releasesurl" | jq "$jqpattern" -r)
     $filename = $(basename "$asseturl")
     Log "Downloading: '$asseturl' -> '$filename'"
@@ -135,6 +141,52 @@ function Download-SqlCmd() {
     rm NOTICE.md
     rm sqlcmd_debug
     mv sqlcmd tests
+}
+
+function Compile-Isatty() {
+    Log "Compiling isatty work around for mysql"
+    echo "int isatty(int fd) { return 1; }" | gcc -O2 -fpic -shared -ldl -o tests/isatty.so -xc -
+}
+
+function Generate-AlphanumericPassword([int] $numberOfChars) {
+    [char[]] $validChars = 'a'..'z' + 'A'..'Z' + [char]'0'..[char]'9'
+    [string] $password = ""
+    do {
+        [string] $password = (1..$numberOfChars | ForEach-Object { $validChars[(Get-Random -Maximum $validChars.Length)] }) -join ""
+    }
+    while (
+        !($password | ? { ($_.ToCharArray() | ? { [Char]::IsUpper($_) }) }) -or
+        !($password | ? { ($_.ToCharArray() | ? { [Char]::IsLower($_) }) }) -or
+        !($password | ? { ($_.ToCharArray() | ? { [Char]::IsDigit($_) }) }));
+
+    return $password
+}
+
+function Update-Configfiles([string] $password) {
+    $files = @(dir config*)
+    foreach ($file in $files) {
+        [string[]] $rows = Get-Content $file
+        for ([int] $i = 0; $i -lt $rows.Length; $i++) {
+            [int] $index1 = $rows[$i].IndexOf('Password=')
+            if ($index1 -ge 0) {
+                [int] $index2 = $rows[$i].IndexOf('"', $index1 + 9)
+                if ($index2 -ge 0) {
+                    $aa = $rows[$i]
+                    $rows[$i] = $rows[$i].Substring(0, $index1 + 9) + $password + $rows[$i].Substring($index2)
+                }
+            }
+
+            [int] $index1 = $rows[$i].IndexOf('"password": "')
+            if ($index1 -ge 0) {
+                [int] $index2 = $rows[$i].IndexOf('"', $index1 + 13)
+                if ($index2 -ge 0) {
+                    $aa = $rows[$i]
+                    $rows[$i] = $rows[$i].Substring(0, $index1 + 13) + $password + $rows[$i].Substring($index2)
+                }
+            }
+        }
+        Set-Content $file $rows
+    }
 }
 
 function Log($message) {
