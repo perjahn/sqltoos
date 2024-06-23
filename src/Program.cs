@@ -1,6 +1,7 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.IO;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace sqltoelastic
@@ -11,22 +12,43 @@ namespace sqltoelastic
         {
             if (args.Length != 1)
             {
-                Console.WriteLine("Usage: sqltoelastic <configfile>");
+                Log("Usage: sqltoelastic <configfile>");
                 return 1;
             }
 
-            string configfile = args[0];
+            var configfile = args[0];
             if (!File.Exists(configfile))
             {
-                Console.WriteLine($"Configfile not found: '{configfile}'");
+                Log($"Config file not found: '{configfile}'");
                 return 1;
             }
 
-            var config = JObject.Parse(File.ReadAllText(configfile));
+            var json = File.ReadAllText(configfile);
 
-            bool result = await CopyData.CopyRows(config);
+            JsonNode? jsonnode;
+            try
+            {
+                jsonnode = JsonNode.Parse(json);
+            }
+            catch (JsonException ex)
+            {
+                Log($"Error: Invalid json in config file: {ex.Message.Trim()} '{configfile}' '{json}'");
+                return 1;
+            }
+            if (jsonnode == null || jsonnode is not JsonObject config)
+            {
+                Log($"Error: Invalid json in config file: '{configfile}' '{json}'");
+                return 1;
+            }
+
+            var result = await CopyData.CopyRows(config);
 
             return result ? 0 : 1;
+        }
+
+        static void Log(string message)
+        {
+            Console.WriteLine(message);
         }
     }
 }

@@ -61,6 +61,7 @@ function Main() {
     Download-SqlCmd
     Compile-Isatty
 
+    Log "Waiting for containers to start up..."
     Start-Sleep 30
 
     Log "Running containers:"

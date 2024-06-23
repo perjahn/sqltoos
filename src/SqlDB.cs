@@ -1,6 +1,4 @@
 ﻿using MySql.Data.MySqlClient;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Npgsql;
 using System;
 using System.Collections.Generic;
@@ -8,13 +6,15 @@ using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace sqltoelastic
 {
     class SqlDB
     {
-        public static async Task<JObject[]> GetRows(string dbprovider, string connstr, string sql,
+        public static async Task<JsonObject[]> GetRows(string dbprovider, string connstr, string sql,
             string[] toupperfields, string[] tolowerfields,
             string[] addconstantfields, string[] expandjsonfields, string[] deescapefields)
         {
@@ -47,7 +47,7 @@ namespace sqltoelastic
             return jsonrows;
         }
 
-        static async Task<JObject[]> ReadData(DbDataReader reader,
+        static async Task<JsonObject[]> ReadData(DbDataReader reader,
             string[] toupperfields, string[] tolowerfields,
             string[] addconstantfields, string[] expandjsonfields, string[] deescapefields)
         {
@@ -60,15 +60,15 @@ namespace sqltoelastic
                 columns.Add(reader.GetName(i));
             }
 
-            var jsonrows = new List<JObject>();
+            var jsonrows = new List<JsonObject>();
 
             while (await reader.ReadAsync())
             {
-                var jsonrow = new JObject();
+                var jsonrow = new JsonObject();
 
-                for (int i = 0; i < reader.FieldCount; i++)
+                for (var i = 0; i < reader.FieldCount; i++)
                 {
-                    string colname = columns[i];
+                    var colname = columns[i];
 
                     if (reader.IsDBNull(i))
                     {
@@ -112,82 +112,58 @@ namespace sqltoelastic
                     }
                     else if (reader.GetValue(i) is string data)
                     {
-                        if (data != null)
+                        if (expandjsonfields.Contains(colname))
                         {
-                            if (expandjsonfields.Contains(colname))
+                            try
                             {
-                                try
-                                {
-                                    JObject jsondata = JObject.Parse(data);
-                                    jsonrow[colname] = jsondata;
-                                }
-                                catch (JsonReaderException)
-                                {
-                                    // Parse. Or Parse not. There is no TryParse. :(
-                                    jsonrow[colname] = data;
-                                }
+                                jsonrow[colname] = JsonNode.Parse(data) ?? data;
                             }
-                            else
+                            catch (JsonException)
                             {
-                                if (toupperfields.Contains(colname))
-                                {
-                                    data = data.ToUpper();
-                                }
-                                if (tolowerfields.Contains(colname))
-                                {
-                                    data = data.ToLower();
-                                }
-                                if (!deescapefields.Contains(colname))
-                                {
-                                    data = data.Replace(@"\", @"\\").Replace("\"", "\\\"");
-                                }
-
+                                // Parse. Or Parse not. There is no TryParse. :(
                                 jsonrow[colname] = data;
                             }
+                        }
+                        else
+                        {
+                            if (toupperfields.Contains(colname))
+                            {
+                                data = data.ToUpper();
+                            }
+                            if (tolowerfields.Contains(colname))
+                            {
+                                data = data.ToLower();
+                            }
+                            if (!deescapefields.Contains(colname))
+                            {
+                                data = data.Replace(@"\", @"\\").Replace("\"", "\\\"");
+                            }
+
+                            jsonrow[colname] = data;
                         }
                     }
                 }
 
                 foreach (var addfield in addfields)
                 {
-                    string addfieldname = addfield.Key;
-                    string addfieldvalue = addfield.Value;
+                    var addfieldname = addfield.Key;
+                    var addfieldvalue = addfield.Value;
 
-                    if (DateTime.TryParse(addfieldvalue, out DateTime valuedatetime))
+                    jsonrow[addfieldname] = addfieldvalue switch
                     {
-                        jsonrow[addfieldname] = valuedatetime;
-                    }
-                    else if (DateTimeOffset.TryParse(addfieldvalue, out DateTimeOffset valuedatetimeoffset))
-                    {
-                        jsonrow[addfieldname] = valuedatetimeoffset;
-                    }
-                    else if (short.TryParse(addfieldvalue, out short valueshort))
-                    {
-                        jsonrow[addfieldname] = valueshort;
-                    }
-                    else if (int.TryParse(addfieldvalue, out int valueint))
-                    {
-                        jsonrow[addfieldname] = valueint;
-                    }
-                    else if (long.TryParse(addfieldvalue, out long valuelong))
-                    {
-                        jsonrow[addfieldname] = valuelong;
-                    }
-                    else
-                    {
-                        jsonrow[addfieldname] = addfieldvalue;
-                    }
+                        _ when DateTime.TryParse(addfieldvalue, out DateTime valuedatetime) => valuedatetime,
+                        _ when DateTimeOffset.TryParse(addfieldvalue, out DateTimeOffset valuedatetimeoffset) => valuedatetimeoffset,
+                        _ when short.TryParse(addfieldvalue, out short valueshort) => valueshort,
+                        _ when int.TryParse(addfieldvalue, out int valueint) => valueint,
+                        _ when long.TryParse(addfieldvalue, out long valuelong) => valuelong,
+                        _ => addfieldvalue
+                    };
                 }
 
                 jsonrows.Add(jsonrow);
             }
 
-            return jsonrows.ToArray();
-        }
-
-        static void Log(string message)
-        {
-            Console.WriteLine(message);
+            return [.. jsonrows];
         }
     }
 }

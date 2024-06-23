@@ -1,6 +1,4 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,50 +7,63 @@ using System.Net.Http.Headers;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace sqltoelastic
 {
     class Elastic
     {
+        static JsonSerializerOptions JsonOptionsRow { get; set; } = new() { WriteIndented = false };
+        static JsonSerializerOptions JsonOptionsIndented { get; set; } = new() { WriteIndented = false };
+
         public static async Task<bool> PutIntoIndex(string serverurl, string cacertfile, bool allowInvalidHttpsCert, string username, string password, string indexname,
-            string timestampfield, string idfield, string idprefix, JObject[] jsonrows)
+            string timestampfield, string idfield, string idprefix, JsonObject[] jsonrows)
         {
-            string bulkdata;
-
-            using var handler = new HttpClientHandler();
-
             if (allowInvalidHttpsCert)
             {
-                handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+                using var handler = new HttpClientHandler() { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator };
+                using var client = new HttpClient(handler);
+
+                return await PutIntoIndexWithClient(client, serverurl, username, password, indexname, timestampfield, idfield, idprefix, jsonrows);
             }
             else if (cacertfile != string.Empty)
             {
-                var cacert = new X509Certificate2(cacertfile);
+                using var cacert = new X509Certificate2(cacertfile);
+                using var handler = new HttpClientHandler()
+                {
+                    ServerCertificateCustomValidationCallback = (HttpRequestMessage message, X509Certificate2? cert, X509Chain? chain, SslPolicyErrors errors) =>
+                        chain != null && chain.ChainElements.Count == 2 && chain.ChainElements[1].Certificate.RawData.SequenceEqual(cacert.RawData)
+                };
+                using var client = new HttpClient(handler);
 
-                handler.ServerCertificateCustomValidationCallback = (
-                    HttpRequestMessage message,
-                    X509Certificate2? cert,
-                    X509Chain? chain,
-                    SslPolicyErrors errors
-                ) => chain != null && chain.ChainElements.Count == 2 && chain.ChainElements[1].Certificate.RawData.SequenceEqual(cacert.RawData);
+                return await PutIntoIndexWithClient(client, serverurl, username, password, indexname, timestampfield, idfield, idprefix, jsonrows);
             }
+            else
+            {
+                using var client = new HttpClient();
 
-            using var client = allowInvalidHttpsCert || cacertfile != string.Empty ? new HttpClient(handler) : new HttpClient();
+                return await PutIntoIndexWithClient(client, serverurl, username, password, indexname, timestampfield, idfield, idprefix, jsonrows);
+            }
+        }
 
-            int rownum = 0;
+        static async Task<bool> PutIntoIndexWithClient(HttpClient client, string serverurl, string username, string password, string indexname,
+            string timestampfield, string idfield, string idprefix, JsonObject[] jsonrows)
+        {
+            string bulkdata;
 
-            string address = $"{serverurl}/_bulk";
-
+            var rownum = 0;
+            var address = $"{serverurl}/_bulk";
             var rows = new StringBuilder();
 
             foreach (var jsonrow in jsonrows)
             {
-                jsonrow["@timestamp"] = jsonrow[timestampfield];
                 DateTime timestamp;
-                if (jsonrow[timestampfield] is JValue timefield)
+                if (jsonrow[timestampfield] is JsonValue timefield)
                 {
-                    timestamp = timefield.Value<DateTime>();
+                    timestamp = timefield.GetValue<DateTime>();
+                    jsonrow["@timestamp"] = timestamp;
                 }
                 else
                 {
@@ -60,16 +71,16 @@ namespace sqltoelastic
                     return false;
                 }
 
-                string datestring = timestamp.ToString("yyyy.MM");
-                string dateindexname = $"{indexname}-{datestring}";
-                string id = $"{idprefix}{jsonrow[idfield]?.Value<string>()}";
+                var datestring = timestamp.ToString("yyyy.MM");
+                var dateindexname = $"{indexname}-{datestring}";
+                var id = $"{idprefix}{jsonrow[idfield]?.GetValue<int>()}";
 
-                string metadata = "{ \"index\": { \"_index\": \"" + dateindexname + "\", \"_id\": \"" + id + "\" } }";
-                rows.AppendLine(metadata);
+                var metadata = "{ \"index\": { \"_index\": \"" + dateindexname + "\", \"_id\": \"" + id + "\" } }";
+                _ = rows.AppendLine(metadata);
 
-                string rowdata = jsonrow.ToString(Formatting.None);
+                var rowdata = JsonSerializer.Serialize(jsonrow, JsonOptionsRow);
                 Log($"'{rowdata}'");
-                rows.AppendLine(rowdata);
+                _ = rows.AppendLine(rowdata);
 
                 rownum++;
 
@@ -93,22 +104,22 @@ namespace sqltoelastic
             return true;
         }
 
-        static int bulkdataCounter = 0;
+        static int bulkdataCounter;
 
         static async Task ImportRows(HttpClient client, string address, string username, string password, string bulkdata)
         {
             if (username != string.Empty && password != string.Empty)
             {
-                string credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
+                var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
             }
 
-            string result = string.Empty;
+            var result = string.Empty;
             try
             {
                 File.WriteAllText($"bulkdata_{bulkdataCounter++}.txt", bulkdata);
 
-                var content = new StringContent(bulkdata, Encoding.UTF8, "application/json");
+                using var content = new StringContent(bulkdata, Encoding.UTF8, "application/json");
                 var response = await client.PostAsync(address, content);
                 result = await response.Content.ReadAsStringAsync();
                 LogResult(result);
@@ -117,96 +128,83 @@ namespace sqltoelastic
             {
                 Log($"Put '{address}': >>>{bulkdata}<<<");
                 Log($"Result: >>>{result}<<<");
-                Log($"Exception: >>>{ex.ToString()}<<<");
+                Log($"Exception: >>>{ex}<<<");
             }
         }
 
         static void LogResult(string result)
         {
-            if (TryParseJObject(result, out JObject jsonresult))
-            {
-                if (jsonresult["items"] is JArray items)
-                {
-                    var results = new Dictionary<string, int>();
-                    var statuses = new Dictionary<string, int>();
-                    var errors = new List<string>();
-
-                    foreach (var item in items)
-                    {
-                        if (item["index"] is JObject index)
-                        {
-                            if (index["result"] is JValue resultvalue)
-                            {
-                                string resultname = resultvalue.Value<string>() ?? string.Empty;
-                                if (results.ContainsKey(resultname))
-                                {
-                                    results[resultname]++;
-                                }
-                                else
-                                {
-                                    results[resultname] = 1;
-                                }
-                            }
-
-                            if (index["status"] is JValue statusvalue)
-                            {
-                                string statusname = statusvalue.Value<string>() ?? string.Empty;
-                                if (statuses.ContainsKey(statusname))
-                                {
-                                    statuses[statusname]++;
-                                }
-                                else
-                                {
-                                    statuses[statusname] = 1;
-                                }
-                            }
-
-                            if (index["error"] is JObject error)
-                            {
-                                if (error["reason"] is JValue reason)
-                                {
-                                    errors.Add(reason.Value<string>() ?? string.Empty);
-                                }
-                            }
-                        }
-                    }
-
-                    Log($"Results: {string.Join(", ", results.OrderBy(r => r.Key).Select(r => $"{r.Key}: {r.Value}"))}");
-                    Log($"Statuses: {string.Join(", ", statuses.OrderBy(s => s.Key).Select(s => $"{s.Key}: {s.Value}"))}");
-                    if (errors.Count > 0)
-                    {
-                        Log($"Got {errors.Count} errors:");
-                        foreach (var error in errors)
-                        {
-                            Log(error);
-                        }
-                    }
-
-                    string filename = "result.json";
-                    Log($"Result saved to: '{filename}'");
-                    File.WriteAllText(filename, jsonresult.ToString(Formatting.Indented));
-                }
-                else
-                {
-                    Log($"Result: '{jsonresult}'");
-                }
-            }
-            else
+            if (!TryParseJsonObject(result, out JsonObject jsonresult))
             {
                 Log(result);
+                return;
             }
+            if (jsonresult["items"] is not JsonArray items)
+            {
+                Log($"Result: '{jsonresult}'");
+                return;
+            }
+            var results = new Dictionary<string, int>();
+            var statuses = new Dictionary<string, int>();
+            var errors = new List<string>();
+
+            foreach (var item in items)
+            {
+                if (item?["index"] is JsonObject index)
+                {
+                    if (index["result"] is JsonValue resultvalue)
+                    {
+                        var resultname = resultvalue.GetValue<string>();
+                        results[resultname] = results.TryGetValue(resultname, out int value) ?
+                            value + 1 :
+                            results[resultname] = 1;
+                    }
+
+                    if (index["status"] is JsonValue statusvalue)
+                    {
+                        var statusname = statusvalue.GetValue<int>().ToString();
+                        statuses[statusname] = statuses.TryGetValue(statusname, out int value) ? value + 1 : 1;
+                    }
+
+                    if (index["error"] is JsonObject error && error["reason"] is JsonValue reason)
+                    {
+                        errors.Add(reason.GetValue<string>());
+                    }
+                }
+            }
+
+            Log($"Results: {string.Join(", ", results.OrderBy(r => r.Key).Select(r => $"{r.Key}: {r.Value}"))}");
+            Log($"Statuses: {string.Join(", ", statuses.OrderBy(s => s.Key).Select(s => $"{s.Key}: {s.Value}"))}");
+            if (errors.Count > 0)
+            {
+                Log($"Got {errors.Count} errors:");
+                foreach (var error in errors)
+                {
+                    Log(error);
+                }
+            }
+
+            string filename = "result.json";
+            Log($"Result saved to: '{filename}'");
+            File.WriteAllText(filename, JsonSerializer.Serialize(jsonresult, JsonOptionsIndented));
         }
 
-        static bool TryParseJObject(string json, out JObject jobject)
+        static bool TryParseJsonObject(string json, out JsonObject jsonobject)
         {
             try
             {
-                jobject = JObject.Parse(json);
-                return true;
+                var n = JsonNode.Parse(json);
+                if (n != null)
+                {
+                    jsonobject = n.AsObject();
+                    return true;
+                }
+                jsonobject = [];
+                return false;
             }
-            catch (JsonReaderException)
+            catch (JsonException)
             {
-                jobject = new JObject();
+                jsonobject = [];
                 return false;
             }
         }

@@ -4,10 +4,14 @@
     <TargetFramework>net8.0</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <Nullable>enable</Nullable>
+    <AnalysisMode>All</AnalysisMode>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevelStyle>preview</AnalysisLevelStyle>
+    <NoWarn>CA1031,CA1303,CA1304,CA1305,CA1307,CA1311,CA1820,CA1849,CA1852,CA2007,CA2100,CA2201,CA2234,CA5400,IDE0008,IDE0040,IDE0210</NoWarn>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MySql.Data" Version="8.4.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Npgsql" Version="8.0.3" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
   </ItemGroup>
