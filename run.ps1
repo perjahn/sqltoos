@@ -15,7 +15,7 @@ function Main() {
 
     [string] $containerImageMysql = "mysql"
     [string] $containerImagePostgres = "postgres"
-    [string] $containerImageSqlserver = "mcr.microsoft.com/mssql/server:2022-latest"
+    [string] $containerImageSqlserver = "mcr.microsoft.com/mssql/server"
     [string] $containerImageElasticsearch = "elasticsearch:8.14.1"
 
     [string] $containerMysql = $(docker ps | grep $containerImageMysql | awk '{print $1}')
