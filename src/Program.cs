@@ -1,13 +1,14 @@
 ﻿using System;
 using System.IO;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
 namespace sqltoelastic
 {
     static class Program
     {
+        static readonly JsonSerializerOptions options = new();
+
         static async Task<int> Main(string[] args)
         {
             if (args.Length != 1)
@@ -25,17 +26,18 @@ namespace sqltoelastic
 
             var json = File.ReadAllText(configfile);
 
-            JsonNode? jsonnode;
+            Config? config;
+            options.Converters.Add(new EnvironmentVariableConverter<Config>());
             try
             {
-                jsonnode = JsonNode.Parse(json);
+                config = JsonSerializer.Deserialize<Config>(json, options);
             }
             catch (JsonException ex)
             {
                 Log($"Error: Invalid json in config file: {ex.Message.Trim()} '{configfile}' '{json}'");
                 return 1;
             }
-            if (jsonnode == null || jsonnode is not JsonObject config)
+            if (config == null)
             {
                 Log($"Error: Invalid json in config file: '{configfile}' '{json}'");
                 return 1;

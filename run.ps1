@@ -4,7 +4,6 @@ $ErrorActionPreference = "Stop"
 
 function Main() {
     [string] $password = Generate-AlphanumericPassword 20
-    Update-Configfiles $password
 
     docker ps | grep -v "^CONTAINER" | awk '{print $1}' | xargs -r docker stop
 
@@ -92,7 +91,10 @@ function Main() {
 
     [bool] $testfail = $false
 
+    $env:SQLTOELASTIC_PASSWORD = $password
+
     Log "Importing mysql:"
+    $env:SQLTOELASTIC_CONNSTR = "Server=localhost;Database=testdb;User Id=root;Password=$password"
     dotnet run --project src configMysql.json
     jq 'del(.took)' result.json > result_mysql.json
     diff result_mysql.json tests/expected_mysql.json
@@ -102,6 +104,7 @@ function Main() {
     }
 
     Log "Importing postgres:"
+    $env:SQLTOELASTIC_CONNSTR = "Server=localhost;Database=testdb;User Id=postgres;Password=$password"
     dotnet run --project src configPostgres.json
     jq 'del(.took)' result.json > result_postgres.json
     diff result_postgres.json tests/expected_postgres.json
@@ -111,6 +114,7 @@ function Main() {
     }
 
     Log "Importing sqlserver:"
+    $env:SQLTOELASTIC_CONNSTR = "Server=localhost;Database=testdb;User Id=sa;Password=$password"
     dotnet run --project src configSqlserver.json
     jq 'del(.took)' result.json > result_sqlserver.json
     diff result_sqlserver.json tests/expected_sqlserver.json
@@ -118,8 +122,6 @@ function Main() {
         Log "Error: sqlserver."
         $testfail = $true
     }
-
-    Update-Configfiles ""
 
     if ($testfail) {
         exit 1
@@ -161,33 +163,6 @@ function Generate-AlphanumericPassword([int] $numberOfChars) {
         !($password | ? { ($_.ToCharArray() | ? { [Char]::IsDigit($_) }) }));
 
     return $password
-}
-
-function Update-Configfiles([string] $password) {
-    $files = @(dir config*)
-    foreach ($file in $files) {
-        [string[]] $rows = Get-Content $file
-        for ([int] $i = 0; $i -lt $rows.Length; $i++) {
-            [int] $index1 = $rows[$i].IndexOf('Password=')
-            if ($index1 -ge 0) {
-                [int] $index2 = $rows[$i].IndexOf('"', $index1 + 9)
-                if ($index2 -ge 0) {
-                    $aa = $rows[$i]
-                    $rows[$i] = $rows[$i].Substring(0, $index1 + 9) + $password + $rows[$i].Substring($index2)
-                }
-            }
-
-            [int] $index1 = $rows[$i].IndexOf('"password": "')
-            if ($index1 -ge 0) {
-                [int] $index2 = $rows[$i].IndexOf('"', $index1 + 13)
-                if ($index2 -ge 0) {
-                    $aa = $rows[$i]
-                    $rows[$i] = $rows[$i].Substring(0, $index1 + 13) + $password + $rows[$i].Substring($index2)
-                }
-            }
-        }
-        Set-Content $file $rows
-    }
 }
 
 function Log($message) {

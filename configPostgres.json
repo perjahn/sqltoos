@@ -1,6 +1,6 @@
 {
   "dbprovider": "postgres",
-  "connstr": "Server=localhost;Database=testdb;User Id=postgres;Password=",
+  "connstr": "",
   "sql": "select * from testtable",
   "elasticserverurl": "https://localhost:9200",
   "cacertfile": "http_ca.crt",

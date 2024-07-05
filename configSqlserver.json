@@ -1,6 +1,6 @@
 {
   "dbprovider": "sqlserver",
-  "connstr": "Server=localhost;Database=testdb;User Id=sa;Password=",
+  "connstr": "",
   "sql": "select * from testtable",
   "elasticserverurl": "https://localhost:9200",
   "cacertfile": "http_ca.crt",

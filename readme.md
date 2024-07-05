@@ -39,6 +39,14 @@ Example files: ```configMysql.json```, ```configPostgres.json``` and ```configSq
 }
 ```
 
+## Environment variables
+
+All config values in the config file can be overridden by using environment variables instead, which has
+precedence over values from the config file. To specify a value using an environment variable, precede the
+name of the value with "SQLTOELASTIC_", and then add the upper cased name of the value.
+E.g. SQLTOELASTIC_PASSWORD for replacing the password value.
+Multivalue values (arrays) should be comma separated.
+
 ## Incremental scheduled run
 
 A common use case is to only copy newly added/modified rows in a sql database, to elasticsearch.

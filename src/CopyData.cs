@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Linq;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
@@ -8,19 +7,19 @@ namespace sqltoelastic
 {
     class CopyData
     {
-        public static async Task<bool> CopyRows(JsonObject config)
+        public static async Task<bool> CopyRows(Config config)
         {
             Log("Starting...");
 
-            string dbprovider = config["dbprovider"]?.GetValue<string>() ?? string.Empty;
-            string connstr = config["connstr"]?.GetValue<string>() ?? string.Empty;
-            string sql = config["sql"]?.GetValue<string>() ?? string.Empty;
+            string dbprovider = config.Dbprovider;
+            string connstr = config.Connstr;
+            string sql = config.Sql;
 
-            string[] toupperfields = GetConfigArray(config, "toupperfields");
-            string[] tolowerfields = GetConfigArray(config, "tolowerfields");
-            string[] addconstantfields = GetConfigArray(config, "addconstantfields");
-            string[] expandjsonfields = GetConfigArray(config, "expandjsonfields");
-            string[] deescapefields = GetConfigArray(config, "deescapefields");
+            string[] toupperfields = config.Toupperfields;
+            string[] tolowerfields = config.Tolowerfields;
+            string[] addconstantfields = config.Addconstantfields;
+            string[] expandjsonfields = config.Expandjsonfields;
+            string[] deescapefields = config.Deescapefields;
 
             JsonObject[] jsonrows;
 
@@ -31,15 +30,15 @@ namespace sqltoelastic
 
             Log($"Got {jsonrows.Length} rows.");
 
-            string serverurl = config["elasticserverurl"]?.GetValue<string>() ?? string.Empty;
-            string cacertfile = config["cacertfile"]?.GetValue<string>() ?? string.Empty;
-            bool allowInvalidHttpsCert = config["allowinvalidhttpscert"]?.GetValue<bool>() ?? false;
-            string username = config["username"]?.GetValue<string>() ?? string.Empty;
-            string password = config["password"]?.GetValue<string>() ?? string.Empty;
-            string indexname = config["indexname"]?.GetValue<string>() ?? string.Empty;
-            string timestampfield = config["timestampfield"]?.GetValue<string>() ?? string.Empty;
-            string idfield = config["idfield"]?.GetValue<string>() ?? string.Empty;
-            string idprefix = config["idprefix"]?.GetValue<string>() ?? string.Empty;
+            string serverurl = config.Elasticserverurl;
+            string cacertfile = config.Cacertfile;
+            bool allowInvalidHttpsCert = config.Allowinvalidhttpscert;
+            string username = config.Username;
+            string password = config.Password;
+            string indexname = config.Indexname;
+            string timestampfield = config.Timestampfield;
+            string idfield = config.Idfield;
+            string idprefix = config.Idprefix;
 
             bool result = await Elastic.PutIntoIndex(serverurl, cacertfile, allowInvalidHttpsCert, username, password, indexname, timestampfield, idfield, idprefix, jsonrows);
 
@@ -48,11 +47,6 @@ namespace sqltoelastic
             Log("Done!");
 
             return result;
-        }
-
-        static string[] GetConfigArray(JsonObject config, string fieldname)
-        {
-            return [.. config[fieldname]?.AsArray()?.Select(v => v?.GetValue<string>() ?? string.Empty) ?? []];
         }
 
         static void Log(string message)
