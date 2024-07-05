@@ -7,7 +7,7 @@
     <AnalysisMode>All</AnalysisMode>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <AnalysisLevelStyle>preview</AnalysisLevelStyle>
-    <NoWarn>CA1000,CA1031,CA1303,CA1304,CA1305,CA1307,CA1310,CA1311,CA1819,CA1820,CA1849,CA1852,CA2007,CA2100,CA2201,CA2234,CA5400,CS1591,IDE0008,IDE0040,IDE0210</NoWarn>
+    <NoWarn>CA1031,CA1304,CA1305,CA1307,CA1311,CA1820,CA1849,CA1852,CA2007,CA2100,CA2201,CA2234,CA5400,CS1591,IDE0008,IDE0040,IDE0210</NoWarn>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>

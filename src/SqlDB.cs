@@ -53,18 +53,18 @@ namespace sqltoelastic
         {
             var addfields = addconstantfields.Where(f => f.Contains('=')).ToDictionary(f => f.Split('=')[0], f => f.Split('=')[1]);
 
-            var columns = new List<string>();
+            List<string> columns = [];
 
             for (int i = 0; i < reader.FieldCount; i++)
             {
                 columns.Add(reader.GetName(i));
             }
 
-            var jsonrows = new List<JsonObject>();
+            List<JsonObject> jsonrows = [];
 
             while (await reader.ReadAsync())
             {
-                var jsonrow = new JsonObject();
+                JsonObject jsonrow = [];
 
                 for (var i = 0; i < reader.FieldCount; i++)
                 {

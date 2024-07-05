@@ -11,36 +11,35 @@ namespace sqltoelastic
         {
             Log("Starting...");
 
-            string dbprovider = config.Dbprovider;
-            string connstr = config.Connstr;
-            string sql = config.Sql;
+            var dbprovider = config.Dbprovider;
+            var connstr = config.Connstr;
+            var sql = config.Sql;
 
-            string[] toupperfields = config.Toupperfields;
-            string[] tolowerfields = config.Tolowerfields;
-            string[] addconstantfields = config.Addconstantfields;
-            string[] expandjsonfields = config.Expandjsonfields;
-            string[] deescapefields = config.Deescapefields;
+            var toupperfields = config.Toupperfields;
+            var tolowerfields = config.Tolowerfields;
+            var addconstantfields = config.Addconstantfields;
+            var expandjsonfields = config.Expandjsonfields;
+            var deescapefields = config.Deescapefields;
 
             JsonObject[] jsonrows;
 
             var watch = Stopwatch.StartNew();
 
-            jsonrows = await SqlDB.GetRows(dbprovider, connstr, sql, toupperfields, tolowerfields,
-                addconstantfields, expandjsonfields, deescapefields);
+            jsonrows = await SqlDB.GetRows(dbprovider, connstr, sql, toupperfields, tolowerfields, addconstantfields, expandjsonfields, deescapefields);
 
             Log($"Got {jsonrows.Length} rows.");
 
-            string serverurl = config.Elasticserverurl;
-            string cacertfile = config.Cacertfile;
-            bool allowInvalidHttpsCert = config.Allowinvalidhttpscert;
-            string username = config.Username;
-            string password = config.Password;
-            string indexname = config.Indexname;
-            string timestampfield = config.Timestampfield;
-            string idfield = config.Idfield;
-            string idprefix = config.Idprefix;
+            var serverurl = config.Elasticserverurl;
+            var cacertfile = config.Cacertfile;
+            var allowInvalidHttpsCert = config.Allowinvalidhttpscert;
+            var username = config.Username;
+            var password = config.Password;
+            var indexname = config.Indexname;
+            var timestampfield = config.Timestampfield;
+            var idfield = config.Idfield;
+            var idprefix = config.Idprefix;
 
-            bool result = await Elastic.PutIntoIndex(serverurl, cacertfile, allowInvalidHttpsCert, username, password, indexname, timestampfield, idfield, idprefix, jsonrows);
+            var result = await Elastic.PutIntoIndex(serverurl, cacertfile, allowInvalidHttpsCert, username, password, indexname, timestampfield, idfield, idprefix, jsonrows);
 
             Log($"Time: {watch.Elapsed}");
 

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -23,26 +22,26 @@ namespace sqltoelastic
         {
             if (allowInvalidHttpsCert)
             {
-                using var handler = new HttpClientHandler() { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator };
-                using var client = new HttpClient(handler);
+                using HttpClientHandler handler = new() { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator };
+                using HttpClient client = new(handler);
 
                 return await PutIntoIndexWithClient(client, serverurl, username, password, indexname, timestampfield, idfield, idprefix, jsonrows);
             }
             else if (cacertfile != string.Empty)
             {
-                using var cacert = new X509Certificate2(cacertfile);
-                using var handler = new HttpClientHandler()
+                using X509Certificate2 cacert = new(cacertfile);
+                using HttpClientHandler handler = new()
                 {
                     ServerCertificateCustomValidationCallback = (HttpRequestMessage message, X509Certificate2? cert, X509Chain? chain, SslPolicyErrors errors) =>
                         chain != null && chain.ChainElements.Count == 2 && chain.ChainElements[1].Certificate.RawData.SequenceEqual(cacert.RawData)
                 };
-                using var client = new HttpClient(handler);
+                using HttpClient client = new(handler);
 
                 return await PutIntoIndexWithClient(client, serverurl, username, password, indexname, timestampfield, idfield, idprefix, jsonrows);
             }
             else
             {
-                using var client = new HttpClient();
+                using HttpClient client = new();
 
                 return await PutIntoIndexWithClient(client, serverurl, username, password, indexname, timestampfield, idfield, idprefix, jsonrows);
             }
@@ -55,7 +54,7 @@ namespace sqltoelastic
 
             var rownum = 0;
             var address = $"{serverurl}/_bulk";
-            var rows = new StringBuilder();
+            StringBuilder rows = new();
 
             foreach (var jsonrow in jsonrows)
             {
@@ -90,7 +89,7 @@ namespace sqltoelastic
 
                     bulkdata = rows.ToString();
                     await ImportRows(client, address, username, password, bulkdata);
-                    rows = new StringBuilder();
+                    rows = new();
                 }
             }
 
@@ -111,7 +110,7 @@ namespace sqltoelastic
             if (username != string.Empty && password != string.Empty)
             {
                 var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{username}:{password}"));
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", credentials);
+                client.DefaultRequestHeaders.Authorization = new("Basic", credentials);
             }
 
             var result = string.Empty;
@@ -119,7 +118,7 @@ namespace sqltoelastic
             {
                 File.WriteAllText($"bulkdata_{bulkdataCounter++}.txt", bulkdata);
 
-                using var content = new StringContent(bulkdata, Encoding.UTF8, "application/json");
+                using StringContent content = new(bulkdata, Encoding.UTF8, "application/json");
                 var response = await client.PostAsync(address, content);
                 result = await response.Content.ReadAsStringAsync();
                 LogResult(result);
@@ -144,9 +143,9 @@ namespace sqltoelastic
                 Log($"Result: '{jsonresult}'");
                 return;
             }
-            var results = new Dictionary<string, int>();
-            var statuses = new Dictionary<string, int>();
-            var errors = new List<string>();
+            Dictionary<string, int> results = [];
+            Dictionary<string, int> statuses = [];
+            List<string> errors = [];
 
             foreach (var item in items)
             {
@@ -184,7 +183,7 @@ namespace sqltoelastic
                 }
             }
 
-            string filename = "result.json";
+            var filename = "result.json";
             Log($"Result saved to: '{filename}'");
             File.WriteAllText(filename, JsonSerializer.Serialize(jsonresult, JsonOptionsIndented));
         }
