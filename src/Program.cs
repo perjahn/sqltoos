@@ -24,7 +24,7 @@ namespace sqltoelastic
                 return 1;
             }
 
-            var json = File.ReadAllText(configfile);
+            var json = await File.ReadAllTextAsync(configfile);
 
             Config? config;
             options.Converters.Add(new EnvironmentVariableConverter<Config>());

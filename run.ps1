@@ -15,7 +15,7 @@ function Main() {
     [string] $containerImageMysql = "mysql"
     [string] $containerImagePostgres = "postgres"
     [string] $containerImageSqlserver = "mcr.microsoft.com/mssql/server"
-    [string] $containerImageElasticsearch = "elasticsearch:8.14.1"
+    [string] $containerImageElasticsearch = "elasticsearch:8.14.3"
 
     [string] $containerMysql = $(docker ps | grep $containerImageMysql | awk '{print $1}')
     if ($containerMysql) {
@@ -129,13 +129,15 @@ function Main() {
 }
 
 function Download-SqlCmd() {
-    [string] $arch = $(uname -m)
-    if ($arch -ne "arm64" -and $arch -ne "aarch64") {
-        return
-    }
+    [string] $arch = $(uname -m | sed 's/^x86_64$/amd64/g')
     $releasesurl = 'https://api.github.com/repos/microsoft/go-sqlcmd/releases/latest'
-    $jqpattern = '.assets[] | select(.name|test("^sqlcmd-v[0-9\\.]+-linux-' + $arch + '\\.tar\\.bz2$")) | .browser_download_url'
+    $regex = '^sqlcmd-linux-' + $arch + '\\.tar\\.bz2$'
+    $jqpattern = '.assets[] | select(.name|test("' + $regex + '")) | .browser_download_url'
     $asseturl = $(curl -s "$releasesurl" | jq "$jqpattern" -r)
+    if (!$asseturl) {
+        Log "Couldn't find $regex in $releasesurl"
+        exit 1
+    }
     $filename = $(basename "$asseturl")
     Log "Downloading: '$asseturl' -> '$filename'"
     curl -Ls "$asseturl" -o "$filename"

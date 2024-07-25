@@ -50,10 +50,8 @@ namespace sqltoelastic
         static async Task<bool> PutIntoIndexWithClient(HttpClient client, string serverurl, string username, string password, string indexname,
             string timestampfield, string idfield, string idprefix, JsonObject[] jsonrows)
         {
-            string bulkdata;
-
             var rownum = 0;
-            var address = $"{serverurl}/_bulk";
+            Uri address = new($"{serverurl}/_bulk");
             StringBuilder rows = new();
 
             foreach (var jsonrow in jsonrows)
@@ -87,17 +85,17 @@ namespace sqltoelastic
                 {
                     Log($"Importing rows: {rownum}");
 
-                    bulkdata = rows.ToString();
+                    var bulkdata = rows.ToString();
                     await ImportRows(client, address, username, password, bulkdata);
                     rows = new();
                 }
             }
 
-            bulkdata = rows.ToString();
-            if (bulkdata.Length > 0)
+            var bulkdataLast = rows.ToString();
+            if (bulkdataLast.Length > 0)
             {
                 Log($"Importing rows: {rownum}");
-                await ImportRows(client, address, username, password, bulkdata);
+                await ImportRows(client, address, username, password, bulkdataLast);
             }
 
             return true;
@@ -105,7 +103,7 @@ namespace sqltoelastic
 
         static int bulkdataCounter;
 
-        static async Task ImportRows(HttpClient client, string address, string username, string password, string bulkdata)
+        static async Task ImportRows(HttpClient client, Uri address, string username, string password, string bulkdata)
         {
             if (username != string.Empty && password != string.Empty)
             {
@@ -116,14 +114,14 @@ namespace sqltoelastic
             var result = string.Empty;
             try
             {
-                File.WriteAllText($"bulkdata_{bulkdataCounter++}.txt", bulkdata);
+                await File.WriteAllTextAsync($"bulkdata_{bulkdataCounter++}.txt", bulkdata);
 
                 using StringContent content = new(bulkdata, Encoding.UTF8, "application/json");
                 var response = await client.PostAsync(address, content);
                 result = await response.Content.ReadAsStringAsync();
                 LogResult(result);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
             {
                 Log($"Put '{address}': >>>{bulkdata}<<<");
                 Log($"Result: >>>{result}<<<");

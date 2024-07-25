@@ -41,9 +41,7 @@ namespace sqltoelastic
 
             var result = await Elastic.PutIntoIndex(serverurl, cacertfile, allowInvalidHttpsCert, username, password, indexname, timestampfield, idfield, idprefix, jsonrows);
 
-            Log($"Time: {watch.Elapsed}");
-
-            Log("Done!");
+            Log($"Done: {watch.Elapsed}");
 
             return result;
         }

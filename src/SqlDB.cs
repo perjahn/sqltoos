@@ -23,10 +23,10 @@ namespace sqltoelastic
                 "mysql" => MySqlClientFactory.Instance,
                 "postgres" => NpgsqlFactory.Instance,
                 "sqlserver" => SqlClientFactory.Instance,
-                _ => throw new Exception()
+                _ => throw new NotSupportedException($"The database provider '{dbprovider}' is not supported.")
             };
 
-            using var cn = factory.CreateConnection() ?? throw new Exception();
+            using var cn = factory.CreateConnection() ?? throw new InvalidOperationException();
             cn.ConnectionString = connstr;
             await cn.OpenAsync();
 
@@ -70,7 +70,7 @@ namespace sqltoelastic
                 {
                     var colname = columns[i];
 
-                    if (reader.IsDBNull(i))
+                    if (await reader.IsDBNullAsync(i))
                     {
                         continue;
                     }
