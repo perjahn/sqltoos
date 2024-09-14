@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 echo 'Setting up postgres...'
 
 /usr/bin/psql -U postgres -f /tests/testdataPostgres1.sql

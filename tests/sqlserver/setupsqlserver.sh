@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 echo 'Setting up sqlserver...'
 
 export SQLCMD_TELEMETRY='false'

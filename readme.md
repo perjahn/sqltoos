@@ -1,4 +1,5 @@
 [![Build](https://github.com/perjahn/sqltoelastic/actions/workflows/build.yml/badge.svg)](https://github.com/perjahn/sqltoelastic/actions/workflows/build.yml)
+[![CodeQL](https://github.com/perjahn/sqltoelastic/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/perjahn/sqltoelastic/actions/workflows/github-code-scanning/codeql)
 
 sqltoelastic - cli tool for exporting data from relation databases and importing into elasticsearch.
 
@@ -15,7 +16,7 @@ Patches are welcome! :)
 
 The config file should be a json file, format below.
 Optional fields may be set to empty string/empty array.
-Example files: ```configMysql.json```, ```configPostgres.json``` and ```configSqlserver.json```.
+Example files in tests folder: ```configMysql.json```, ```configPostgres.json``` and ```configSqlserver.json```.
 
 ```json
 {

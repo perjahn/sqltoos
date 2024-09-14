@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 echo 'Setting up mysql...'
 
 sleep 5

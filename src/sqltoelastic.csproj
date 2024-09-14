@@ -11,8 +11,8 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="MySql.Data" Version="8.4.0" />
-    <PackageReference Include="Npgsql" Version="8.0.3" />
+    <PackageReference Include="MySql.Data" Version="9.0.0" />
+    <PackageReference Include="Npgsql" Version="8.0.4" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
   </ItemGroup>
 </Project>

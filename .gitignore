@@ -3,3 +3,8 @@ obj
 .vs
 .vscode
 result*.json
+
+tests/bulkdata_*.txt
+tests/http_ca.crt
+tests/mysql/isatty.so
+tests/sqlserver/sqlcmd
