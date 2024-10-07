@@ -152,8 +152,25 @@ function Download-SqlCmd([string] $outputpath) {
 }
 
 function Compile-Isatty([string] $outputpath) {
-    Log "Compiling isatty work around for mysql"
-    echo "int isatty(int fd) { return 1; }" | gcc -O2 -fpic -shared -ldl -o (Join-Path $outputpath "isatty.so") -xc -
+    [string] $curdir = (Get-Location).Path
+    [string] $dockerfile = 'FROM ubuntu
+WORKDIR /out
+RUN apt-get update && \
+    apt-get -y install gcc
+RUN echo "Compiling isatty work around for mysql" && \
+    echo "int isatty(int fd) { return 1; }" | gcc -O2 -fpic -shared -ldl -o /out/isatty.so -xc -'
+
+    Set-Content Dockerfile $dockerfile
+    $env:DOCKER_BUILDKIT=0
+    docker build -t mysqlworkaround .
+    rm Dockerfile
+
+    rm -rf artifacts
+    mkdir artifacts
+    docker run --entrypoint cp -v $curdir/artifacts:/artifacts mysqlworkaround /out/isatty.so /artifacts
+    docker rmi -f mysqlworkaround
+    mv artifacts/isatty.so $outputpath
+    rmdir artifacts
 }
 
 function Generate-AlphanumericPassword([int] $numberOfChars) {
