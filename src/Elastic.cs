@@ -29,7 +29,7 @@ namespace sqltoelastic
             }
             else if (cacertfile != string.Empty)
             {
-                using X509Certificate2 cacert = new(cacertfile);
+                using X509Certificate2 cacert = X509CertificateLoader.LoadCertificateFromFile(cacertfile);
                 using HttpClientHandler handler = new()
                 {
                     ServerCertificateCustomValidationCallback = (HttpRequestMessage message, X509Certificate2? cert, X509Chain? chain, SslPolicyErrors errors) =>

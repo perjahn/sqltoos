@@ -18,4 +18,6 @@ fi
 sqlcmd -U sa -P $SA_PASSWORD -i /tests/testdataSqlserver1.sql
 sqlcmd -U sa -P $SA_PASSWORD -i /tests/testdataSqlserver2.sql
 
+echo "Hostname: '$(hostname)'"
+
 echo 'Done!'

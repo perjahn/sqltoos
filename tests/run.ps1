@@ -12,7 +12,7 @@ function Main() {
     [string] $containerImageMysql = "mysql"
     [string] $containerImagePostgres = "postgres"
     [string] $containerImageSqlserver = "mcr.microsoft.com/mssql/server"
-    [string] $containerImageElasticsearch = "elasticsearch:8.15.1"
+    [string] $containerImageElasticsearch = "elasticsearch:8.16.1"
 
     [string] $curdir = (Get-Location).Path
 
@@ -92,41 +92,60 @@ function Main() {
     while (!([IO.File]::Exists("http_ca.crt")) -or (dir http_ca.crt).Length -eq 0)
     Log ("Got elasticsearch cert: $((dir http_ca.crt).Length) bytes file.")
 
-    [bool] $testfail = $false
+    [bool] $success = $true
 
     $env:SQLTOELASTIC_PASSWORD = $password
+    dotnet --version
 
     Log "Importing mysql:"
     $env:SQLTOELASTIC_CONNSTR = "Server=localhost;Database=testdb;User Id=root;Password=$password"
     dotnet run --project ../src configMysql.json
-    jq 'del(.took)' result.json > result_mysql.json
-    diff result_mysql.json expected_mysql.json
     if (!$?) {
-        Log "Error: mysql."
-        $testfail = $true
+        Log "Error: mysql run."
+        $success = $false
+    }
+    else {
+        jq 'del(.took)' result.json > result_mysql.json
+        diff result_mysql.json expected_mysql.json
+        if (!$?) {
+            Log "Error: mysql diff."
+            $success = $false
+        }
     }
 
     Log "Importing postgres:"
     $env:SQLTOELASTIC_CONNSTR = "Server=localhost;Database=testdb;User Id=postgres;Password=$password"
     dotnet run --project ../src configPostgres.json
-    jq 'del(.took)' result.json > result_postgres.json
-    diff result_postgres.json expected_postgres.json
     if (!$?) {
-        Log "Error: postgres."
-        $testfail = $true
+        Log "Error: postgres run."
+        $success = $false
+    }
+    else {
+        jq 'del(.took)' result.json > result_postgres.json
+        diff result_postgres.json expected_postgres.json
+        if (!$?) {
+            Log "Error: postgres diff."
+            $success = $false
+        }
     }
 
     Log "Importing sqlserver:"
-    $env:SQLTOELASTIC_CONNSTR = "Server=localhost;Database=testdb;User Id=sa;Password=$password"
+    $env:SQLTOELASTIC_CONNSTR = "Server=localhost;TrustServerCertificate=true;Database=testdb;User Id=sa;Password=$password"
     dotnet run --project ../src configSqlserver.json
-    jq 'del(.took)' result.json > result_sqlserver.json
-    diff result_sqlserver.json expected_sqlserver.json
     if (!$?) {
-        Log "Error: sqlserver."
-        $testfail = $true
+        Log "Error: sqlserver run."
+        $success = $false
+    }
+    else {
+        jq 'del(.took)' result.json > result_sqlserver.json
+        diff result_sqlserver.json expected_sqlserver.json
+        if (!$?) {
+            Log "Error: sqlserver diff."
+            $success = $false
+        }
     }
 
-    if ($testfail) {
+    if (!$success) {
         exit 1
     }
 }
@@ -161,7 +180,7 @@ RUN echo "Compiling isatty work around for mysql" && \
     echo "int isatty(int fd) { return 1; }" | gcc -O2 -fpic -shared -ldl -o /out/isatty.so -xc -'
 
     Set-Content Dockerfile $dockerfile
-    $env:DOCKER_BUILDKIT=0
+    $env:DOCKER_BUILDKIT = 0
     docker build -t mysqlworkaround .
     rm Dockerfile
 
