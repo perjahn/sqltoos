@@ -12,7 +12,7 @@ function Main() {
     [string] $containerImageMysql = "mysql"
     [string] $containerImagePostgres = "postgres"
     [string] $containerImageSqlserver = "mcr.microsoft.com/mssql/server"
-    [string] $containerImageElasticsearch = "elasticsearch:8.16.1"
+    [string] $containerImageElasticsearch = "elasticsearch:8.16.2"
 
     [string] $curdir = (Get-Location).Path
 
@@ -155,16 +155,46 @@ function Download-SqlCmd([string] $outputpath) {
     [string] $releasesurl = 'https://api.github.com/repos/microsoft/go-sqlcmd/releases/latest'
     [string] $regex = '^sqlcmd-linux-' + $arch + '\\.tar\\.bz2$'
     [string] $jqpattern = '.assets[] | select(.name|test("' + $regex + '")) | .browser_download_url'
-    [string] $asseturl = $(curl -s "$releasesurl" | jq "$jqpattern" -r)
+
+    [string] $result = curl -sS $releasesurl
+    if (!$?) {
+        Write-Host $result
+        Write-Host "Retrying download: '$releasesurl'" -f Yellow
+        [string] $result = curl -sS $releasesurl
+        if (!$?) {
+            Write-Host $result
+            Write-Host "Couldn't download sqlcmd (api): '$releasesurl'" -f Red
+            exit 1
+        }
+    }
+
+    [string] $asseturl = $($result | jq $jqpattern -r)
     if (!$asseturl) {
         Log "Couldn't find '$regex' in '$releasesurl'"
         exit 1
     }
-    [string] $filename = $(basename "$asseturl")
+    [string] $filename = $(basename $asseturl)
     Log "Downloading: '$asseturl' -> '$filename'"
-    curl -Ls "$asseturl" -o "$filename"
-    tar xf "$filename"
-    rm "$filename"
+
+    curl -LsS $asseturl -o $filename
+    if (!$?) {
+        Write-Host "Retrying download: '$asseturl'" -f Yellow
+        curl -LsS $asseturl -o $filename
+        if (!$?) {
+            Write-Host "Couldn't download sqlcmd (asset): '$asseturl'" -f Red
+            exit 1
+        }
+    }
+
+    Write-Host "Extracting: '$filename'"
+    tar xf $filename
+
+    if ((dir sqlcmd).Length -eq 0) {
+        Write-Host "Couldn't download sqlcmd (zero filelength)." -f Red
+        exit 1
+    }
+
+    rm $filename
     rm NOTICE.md
     rm sqlcmd_debug
     mv sqlcmd $outputpath

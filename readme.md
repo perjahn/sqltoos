@@ -1,14 +1,14 @@
 [![Build](https://github.com/perjahn/sqltoelastic/actions/workflows/build.yml/badge.svg)](https://github.com/perjahn/sqltoelastic/actions/workflows/build.yml)
 [![CodeQL](https://github.com/perjahn/sqltoelastic/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/perjahn/sqltoelastic/actions/workflows/github-code-scanning/codeql)
 
-sqltoelastic - cli tool for exporting data from relation databases and importing into elasticsearch.
+sqltoelastic - cli tool for exporting data from relational databases and importing into elasticsearch.
 
 ## Usage
 
 ``Usage: sqltoelastic <configfile>``
 
 Supports MySQL, PostgreSQL, and SQL Server.
-Will probably not work with older elasticsearch version which requires doctype.
+Will probably not work with older elasticsearch versions which require doctype.
 Using HttpClient and the _bulk endpoint in elasticsearch, i.e. not any bloated nest client.
 Patches are welcome! :)
 
