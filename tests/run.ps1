@@ -12,7 +12,7 @@ function Main() {
     [string] $containerImageMysql = "mysql"
     [string] $containerImagePostgres = "postgres"
     [string] $containerImageSqlserver = "mcr.microsoft.com/mssql/server"
-    [string] $containerImageElasticsearch = "elasticsearch:8.16.2"
+    [string] $containerImageElasticsearch = "elasticsearch:8.17.3"
 
     [string] $curdir = (Get-Location).Path
 
