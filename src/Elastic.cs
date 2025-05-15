@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
@@ -32,7 +31,7 @@ namespace sqltoelastic
                 using X509Certificate2 cacert = X509CertificateLoader.LoadCertificateFromFile(cacertfile);
                 using HttpClientHandler handler = new()
                 {
-                    ServerCertificateCustomValidationCallback = (HttpRequestMessage message, X509Certificate2? cert, X509Chain? chain, SslPolicyErrors errors) =>
+                    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
                         chain != null && chain.ChainElements.Count == 2 && chain.ChainElements[1].Certificate.RawData.SequenceEqual(cacert.RawData)
                 };
                 using HttpClient client = new(handler);
