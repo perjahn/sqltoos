@@ -3,7 +3,7 @@ using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace sqltoelastic
+namespace sqltoos
 {
     class Config
     {
@@ -17,7 +17,7 @@ namespace sqltoelastic
         public string[] Expandjsonfields { get; set; } = [];
         public string[] Deescapefields { get; set; } = [];
 
-        public string Elasticserverurl { get; set; } = string.Empty;
+        public string Opensearchserverurl { get; set; } = string.Empty;
         public string Cacertfile { get; set; } = string.Empty;
         public bool Allowinvalidhttpscert { get; set; }
         public string Username { get; set; } = string.Empty;
@@ -43,7 +43,7 @@ namespace sqltoelastic
             {
                 if (root.TryGetProperty(property.Name.ToLower(), out JsonElement element))
                 {
-                    var envValue = Environment.GetEnvironmentVariable($"SQLTOELASTIC_{property.Name.ToUpper()}");
+                    var envValue = Environment.GetEnvironmentVariable($"SQLTOOS_{property.Name.ToUpper()}");
                     if (!string.IsNullOrEmpty(envValue))
                     {
                         property.SetValue(obj, property.PropertyType.IsArray ? envValue.Split(',') : envValue);

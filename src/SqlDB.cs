@@ -10,7 +10,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
-namespace sqltoelastic
+namespace sqltoos
 {
     class SqlDB
     {

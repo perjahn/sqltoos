@@ -12,7 +12,7 @@ function Main() {
     [string] $containerImageMysql = "mysql"
     [string] $containerImagePostgres = "postgres"
     [string] $containerImageSqlserver = "mcr.microsoft.com/mssql/server"
-    [string] $containerImageElasticsearch = "elastic/elasticsearch:9.0.0"
+    [string] $containerImageOpensearch = "opensearchproject/opensearch"
 
     [string] $curdir = (Get-Location).Path
 
@@ -50,14 +50,14 @@ function Main() {
         [string] $containerSqlserver = $(docker ps | grep $containerImageSqlserver | awk '{print $1}')
     }
 
-    [string] $containerElasticsearch = $(docker ps | grep $containerImageElasticsearch | awk '{print $1}')
-    if ($containerElasticsearch) {
-        Log "Reusing existing elasticsearch container: $containerElasticsearch"
+    [string] $containerOpensearch = $(docker ps | grep $containerImageOpensearch | awk '{print $1}')
+    if ($containerOpensearch) {
+        Log "Reusing existing opensearch container: $containerOpensearch"
     }
     else {
-        Log "Starting $($containerImageElasticsearch):"
-        docker run -d -p 9200:9200 -e 'discovery.type=single-node' -e "ELASTIC_PASSWORD=$password" $containerImageElasticsearch
-        [string] $containerElasticsearch = $(docker ps | grep $containerImageElasticsearch | awk '{print $1}')
+        Log "Starting $($containerImageOpensearch):"
+        docker run -d -p 9200:9200 -e 'discovery.type=single-node' -e "OPENSEARCH_INITIAL_ADMIN_PASSWORD=$password" $containerImageOpensearch
+        [string] $containerOpensearch = $(docker ps | grep $containerImageOpensearch | awk '{print $1}')
     }
 
     Download-SqlCmd "sqlserver"
@@ -78,27 +78,36 @@ function Main() {
     Log "Running sqlserver script in $($containerSqlserver):"
     docker exec $containerSqlserver /tests/setupsqlserver.sh
 
-    Log "Waiting for elasticsearch startup..."
+    Log "Waiting for opensearch startup..."
     [int] $seconds = 0
     do {
-        docker cp "$($containerElasticsearch):/usr/share/elasticsearch/config/certs/http_ca.crt" .
+        [string] $certfilename = "esnode.pem"
+        if ([IO.File]::Exists($certfilename)) {
+            del $certfilename
+        }
+        docker cp "$($containerOpensearch):/usr/share/opensearch/config/$certfilename" .
         Log ($seconds++)
         if ($seconds -eq 300 ) {
-            Log "Couldn't retrieve elasticsearch ca cert."
+            Log "Couldn't retrieve opensearch ca cert."
             exit 1
         }
         Start-Sleep 1
     }
-    while (!([IO.File]::Exists("http_ca.crt")) -or (dir http_ca.crt).Length -eq 0)
-    Log ("Got elasticsearch cert: $((dir http_ca.crt).Length) bytes file.")
+    while (!([IO.File]::Exists($certfilename)) -or (dir $certfilename).Length -eq 0)
+    Log ("Got opensearch cert: $((dir $certfilename).Length) bytes file.")
+    $env:SQLTOOS_CACERTFILE = $certfilename
 
     [bool] $success = $true
 
-    $env:SQLTOELASTIC_PASSWORD = $password
+    $env:SQLTOOS_PASSWORD = $password
     dotnet --version
 
     Log "Importing mysql:"
-    $env:SQLTOELASTIC_CONNSTR = "Server=localhost;Database=testdb;User Id=root;Password=$password"
+    [string] $resultfilename = "result.json"
+    if ([IO.File]::Exists($resultfilename)) {
+        del $resultfilename
+    }
+    $env:SQLTOOS_CONNSTR = "Server=localhost;Database=testdb;User Id=root;Password=$password"
     dotnet run --project ../src configMysql.json
     if (!$?) {
         Log "Error: mysql run."
@@ -114,7 +123,11 @@ function Main() {
     }
 
     Log "Importing postgres:"
-    $env:SQLTOELASTIC_CONNSTR = "Server=localhost;Database=testdb;User Id=postgres;Password=$password"
+    [string] $resultfilename = "result.json"
+    if ([IO.File]::Exists($resultfilename)) {
+        del $resultfilename
+    }
+    $env:SQLTOOS_CONNSTR = "Server=localhost;Database=testdb;User Id=postgres;Password=$password"
     dotnet run --project ../src configPostgres.json
     if (!$?) {
         Log "Error: postgres run."
@@ -130,7 +143,11 @@ function Main() {
     }
 
     Log "Importing sqlserver:"
-    $env:SQLTOELASTIC_CONNSTR = "Server=localhost;TrustServerCertificate=true;Database=testdb;User Id=sa;Password=$password"
+    [string] $resultfilename = "result.json"
+    if ([IO.File]::Exists($resultfilename)) {
+        del $resultfilename
+    }
+    $env:SQLTOOS_CONNSTR = "Server=localhost;TrustServerCertificate=true;Database=testdb;User Id=sa;Password=$password"
     dotnet run --project ../src configSqlserver.json
     if (!$?) {
         Log "Error: sqlserver run."

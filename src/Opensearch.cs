@@ -9,9 +9,9 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
-namespace sqltoelastic
+namespace sqltoos
 {
-    class Elastic
+    class Opensearch
     {
         static JsonSerializerOptions JsonOptionsRow { get; set; } = new() { WriteIndented = false };
         static JsonSerializerOptions JsonOptionsIndented { get; set; } = new() { WriteIndented = false };
@@ -32,7 +32,7 @@ namespace sqltoelastic
                 using HttpClientHandler handler = new()
                 {
                     ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
-                        chain != null && chain.ChainElements.Count == 2 && chain.ChainElements[1].Certificate.RawData.SequenceEqual(cacert.RawData)
+                        chain != null && chain.ChainElements.Last().Certificate.RawData.SequenceEqual(cacert.RawData)
                 };
                 using HttpClient client = new(handler);
 

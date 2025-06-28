@@ -3,7 +3,7 @@ using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace sqltoelastic
+namespace sqltoos
 {
     static class Program
     {
@@ -13,7 +13,7 @@ namespace sqltoelastic
         {
             if (args.Length != 1)
             {
-                Log("Usage: sqltoelastic <configfile>");
+                Log("Usage: sqltoos <configfile>");
                 return 1;
             }
 

@@ -3,7 +3,7 @@
   "items": [
     {
       "index": {
-        "_index": "testindex-2022.01",
+        "_index": "testindex-2025.01",
         "_id": "1",
         "_version": 1,
         "result": "created",
@@ -19,7 +19,7 @@
     },
     {
       "index": {
-        "_index": "testindex-2022.01",
+        "_index": "testindex-2025.01",
         "_id": "2",
         "_version": 1,
         "result": "created",
@@ -35,7 +35,7 @@
     },
     {
       "index": {
-        "_index": "testindex-2022.01",
+        "_index": "testindex-2025.01",
         "_id": "3",
         "_version": 1,
         "result": "created",
@@ -51,12 +51,12 @@
     },
     {
       "index": {
-        "_index": "testindex-2022.01",
+        "_index": "testindex-2025.01",
         "_id": "4",
         "status": 400,
         "error": {
-          "type": "document_parsing_exception",
-          "reason": "[1:26] object mapping for [somejsonstring] tried to parse field [somejsonstring] as object, but found a concrete value"
+          "type": "mapper_parsing_exception",
+          "reason": "object mapping for [somejsonstring] tried to parse field [somejsonstring] as object, but found a concrete value"
         }
       }
     }

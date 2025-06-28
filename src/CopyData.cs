@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 
-namespace sqltoelastic
+namespace sqltoos
 {
     class CopyData
     {
@@ -29,7 +29,7 @@ namespace sqltoelastic
 
             Log($"Got {jsonrows.Length} rows.");
 
-            var serverurl = config.Elasticserverurl;
+            var serverurl = config.Opensearchserverurl;
             var cacertfile = config.Cacertfile;
             var allowInvalidHttpsCert = config.Allowinvalidhttpscert;
             var username = config.Username;
@@ -39,7 +39,7 @@ namespace sqltoelastic
             var idfield = config.Idfield;
             var idprefix = config.Idprefix;
 
-            var result = await Elastic.PutIntoIndex(serverurl, cacertfile, allowInvalidHttpsCert, username, password, indexname, timestampfield, idfield, idprefix, jsonrows);
+            var result = await Opensearch.PutIntoIndex(serverurl, cacertfile, allowInvalidHttpsCert, username, password, indexname, timestampfield, idfield, idprefix, jsonrows);
 
             Log($"Done: {watch.Elapsed}");
 

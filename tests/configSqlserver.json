@@ -2,10 +2,10 @@
   "dbprovider": "sqlserver",
   "connstr": "",
   "sql": "select * from testtable",
-  "elasticserverurl": "https://localhost:9200",
-  "cacertfile": "http_ca.crt",
+  "opensearchserverurl": "https://localhost:9200",
+  "cacertfile": "",
   "allowinvalidhttpscert": false,
-  "username": "elastic",
+  "username": "admin",
   "password": "",
   "indexname": "testindex",
   "timestampfield": "somedate",
@@ -15,7 +15,7 @@
   "tolowerfields": [],
   "addconstantfields": [
     "zzz=999",
-    "extradate=2022-01-01T01:02:03"
+    "extradate=2025-01-01T01:02:03"
   ],
   "expandjsonfields": [
     "somejsonstring"
