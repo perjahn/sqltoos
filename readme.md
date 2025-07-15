@@ -23,7 +23,7 @@ Example files in tests folder: ```configMysql.json```, ```configPostgres.json```
   "dbprovider": "",         # Name of database provider. Valid values: mysql/postgres/sqlserver
   "connstr": "",            # Database connection string.
   "sql": "",                # Select query.
-  "opensearchserverurl": "",  # Url to opensearch. Example: http://localhost:9200
+  "opensearchserverurl": "",  # Url to opensearch. Example: https://localhost:9200
   "cacertfile": "",         # Optional. Assume https cert is ok, if signed using this ca cert file.
   "allowinvalidhttpscert": false,  # Optional, default false. Don't validate https cert.
   "username": "",           # Opensearch username.

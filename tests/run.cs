@@ -1,4 +1,4 @@
-#!/usr/share/dotnet/dotnet run
+#!/usr/bin/env -S dotnet run
 
 #:package SharpCompress@0.40.0
 
@@ -16,8 +16,6 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using SharpCompress.Readers;
-
-//return Program.Main();
 
 class GithubRelease
 {
@@ -279,7 +277,7 @@ partial class Program
             throw new Exception($"Error getting container id: '{output}'");
         }
 
-        var rows = output.Trim().Split([Environment.NewLine], StringSplitOptions.RemoveEmptyEntries);
+        var rows = output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         foreach (var row in rows)
         {
             var index = row.IndexOf(' ');
@@ -303,20 +301,33 @@ partial class Program
 
     static string StartContainer(string image, int port, string bindmount, Dictionary<string, string> environmentVariables)
     {
-        var envs = string.Join(" ", environmentVariables.Keys.Select(k => $"-e {k}={environmentVariables[k]}"));
-
-        var args = bindmount == string.Empty ?
-            $"run -d -p {port}:{port} {envs} {image}" :
-            $"run -d -p {port}:{port} -v {bindmount} {envs} {image}";
+        var args = $"run -d -p {port}:{port}";
+        if (bindmount != string.Empty)
+        {
+            args += $" -v {bindmount}";
+        }
+        if (environmentVariables.Keys.Count != 0)
+        {
+            var envs = string.Join(" ", environmentVariables.Keys.Select(k => $"-e {k}"));
+            args += $" {envs}";
+        }
+        args += $" {image}";
 
         Log($"Starting container: 'docker' '{args}'");
 
-        var process = Process.Start(new ProcessStartInfo
+        ProcessStartInfo processStartInfo = new()
         {
             FileName = "docker",
             Arguments = args,
             RedirectStandardOutput = true
-        }) ?? throw new Exception($"Error starting container: 'docker' '{args}'");
+        };
+        foreach (var key in environmentVariables.Keys)
+        {
+            Log($"Adding1: '{key}'");
+            processStartInfo.EnvironmentVariables[key] = environmentVariables[key];
+        }
+
+        var process = Process.Start(processStartInfo) ?? throw new Exception($"Error starting container: 'docker' '{args}'");
 
         var output = process.StandardOutput.ReadToEnd().Trim();
         process.WaitForExit();
@@ -326,18 +337,17 @@ partial class Program
 
     static int RunCommand(string exefile, string args, Dictionary<string, string> environmentVariables)
     {
-        var envs = string.Join(" ", environmentVariables.Keys.Select(k => $"-e {k}={environmentVariables[k]}"));
-
         Log($"Running: '{exefile}' '{args}'");
 
-        var processStartInfo = new ProcessStartInfo
+        ProcessStartInfo processStartInfo = new()
         {
             FileName = exefile,
             Arguments = args
         };
         foreach (var key in environmentVariables.Keys)
         {
-            processStartInfo.EnvironmentVariables.Add(key, environmentVariables[key]);
+            Log($"Adding2: '{key}'");
+            processStartInfo.EnvironmentVariables[key] = environmentVariables[key];
         }
 
         var process = Process.Start(processStartInfo) ?? throw new Exception($"Error starting process: '{exefile}' '{args}'");
@@ -364,6 +374,8 @@ partial class Program
 
     static bool DownloadSqlCmd(string outputfolder)
     {
+        Log("Downloading sqlcmd...");
+
         if (!Directory.Exists(outputfolder))
         {
             throw new DirectoryNotFoundException($"Output folder doesn't exist: '{outputfolder}'");
@@ -378,12 +390,13 @@ partial class Program
         };
         Log($"architecture: '{arch}'");
 
-        if (!DownloadAsset("microsoft", "go-sqlcmd", $"^sqlcmd-linux-{arch}\\.tar\\.bz2$", "sqlcmd", outputfolder))
+        var sqlcmdpath = Path.Combine(outputfolder, "sqlcmd");
+
+        if (!DownloadAsset("microsoft", "go-sqlcmd", $"^sqlcmd-linux-{arch}\\.tar\\.bz2$", sqlcmdpath))
         {
             return false;
         }
 
-        var sqlcmdpath = $"{outputfolder}/sqlcmd";
         if (RunCommand("chmod", $"+x {sqlcmdpath}") != 0)
         {
             Log($"Couldn't set executable permission for sqlcmd: '{sqlcmdpath}'");
@@ -393,7 +406,7 @@ partial class Program
         return true;
     }
 
-    static bool DownloadAsset(string org, string repo, string regex, string filename, string outputfolder)
+    static bool DownloadAsset(string org, string repo, string regex, string assetpath)
     {
         Uri baseAdress = new("https://api.github.com/");
         ProductInfoHeaderValue UserAgent = new("useragent", "1.0");
@@ -401,24 +414,37 @@ partial class Program
         using HttpClient client = new() { BaseAddress = baseAdress };
         client.DefaultRequestHeaders.UserAgent.Add(UserAgent);
 
-        var asseturl = GetAssetUrl(client, org, repo, regex);
+        var asseturl = string.Empty;
+        for (var retries = 1; asseturl == string.Empty && retries <= 20; retries++)
+        {
+            Thread.Sleep(retries * retries * 1000);
+
+            var releasesurl = $"repos/{org}/{repo}/releases/latest";
+            Log($"Getting asset url (try {retries}): '{client.BaseAddress}{releasesurl}'");
+
+            asseturl = GetAssetUrl(client, releasesurl, regex);
+        }
         if (asseturl == string.Empty)
         {
             Log("Error: Unable to get asset url.");
             return false;
         }
 
-        var assetfile = Path.Combine(outputfolder, filename);
-        Log($"Downloading: '{asseturl}' -> '{assetfile}'");
+        var result = false;
+        for (var retries = 1; !result && retries <= 20; retries++)
+        {
+            Thread.Sleep(retries * retries * 1000);
 
-        return DownloadFile(client, asseturl, filename, outputfolder);
+            Log($"Downloading asset (try {retries}): '{asseturl}' -> '{assetpath}'");
+
+            result = DownloadFile(client, asseturl, assetpath);
+        }
+
+        return result;
     }
 
-    static string GetAssetUrl(HttpClient client, string org, string repo, string regex)
+    static string GetAssetUrl(HttpClient client, string releasesurl, string regex)
     {
-        var releasesurl = $"repos/{org}/{repo}/releases/latest";
-        Log($"releasesurl: '{client.BaseAddress}{releasesurl}'");
-
         client.DefaultRequestHeaders.Accept.Add(new("application/json"));
 
         using HttpRequestMessage request = new(HttpMethod.Get, releasesurl);
@@ -431,6 +457,18 @@ partial class Program
         if (!response.IsSuccessStatusCode)
         {
             Log($"Error: {response.StatusCode} ({response.ReasonPhrase}): {json}");
+            foreach (var header in response.Headers.Where(h => h.Key.Contains("RateLimit", StringComparison.OrdinalIgnoreCase)))
+            {
+                Log($"Header: '{header.Key}' = {string.Join(", ", header.Value.Select(v => $"'{v}'"))}");
+            }
+            if (response.Headers.TryGetValues("X-RateLimit-Reset", out var values))
+            {
+                if (long.TryParse(values.FirstOrDefault(), out var resettime))
+                {
+                    var duration = DateTimeOffset.FromUnixTimeSeconds(resettime) - DateTime.Now;
+                    Log($"Rate limit reset within: {duration}");
+                }
+            }
             return string.Empty;
         }
 
@@ -462,18 +500,37 @@ partial class Program
         return asset.browser_download_url;
     }
 
-    static bool DownloadFile(HttpClient client, string url, string filename, string outputfolder)
+    static bool DownloadFile(HttpClient client, string url, string outputpath)
     {
         using HttpRequestMessage request = new(HttpMethod.Get, url);
         using var response = client.Send(request);
 
+        using var stream = response.Content.ReadAsStream();
+
         if (!response.IsSuccessStatusCode)
         {
-            Log($"Error: {response.StatusCode} ({response.ReasonPhrase})");
+            using StreamReader sr = new(stream);
+            var text = sr.ReadToEnd();
+
+            Log($"Error: {response.StatusCode} ({response.ReasonPhrase}): {text}");
+            foreach (var header in response.Headers.Where(h => h.Key.Contains("RateLimit", StringComparison.OrdinalIgnoreCase)))
+            {
+                Log($"Header: '{header.Key}' = {string.Join(", ", header.Value.Select(v => $"'{v}'"))}");
+            }
+            if (response.Headers.TryGetValues("X-RateLimit-Reset", out var values))
+            {
+                if (long.TryParse(values.FirstOrDefault(), out var resettime))
+                {
+                    var duration = DateTimeOffset.FromUnixTimeSeconds(resettime) - DateTime.Now;
+                    Log($"Rate limit reset within: {duration}");
+                }
+            }
             return false;
         }
 
-        using var stream = response.Content.ReadAsStream();
+        var filename = Path.GetFileName(outputpath);
+        var outputfolder = Path.GetDirectoryName(outputpath) ?? string.Empty;
+
         using var reader = ReaderFactory.Open(stream);
 
         while (reader.MoveToNextEntry())
@@ -487,12 +544,11 @@ partial class Program
 
             if (entry.Key == filename)
             {
-                var outputPath = Path.Combine(outputfolder, entry.Key);
-                _ = Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+                _ = Directory.CreateDirectory(outputfolder);
 
-                using var outFile = File.Create(outputPath);
+                using var outFile = File.Create(outputpath);
                 reader.WriteEntryTo(outFile);
-                Log($"Downloaded: '{url}' -> '{outputPath}'");
+                Log($"Downloaded: '{url}' -> '{outputpath}'");
             }
         }
 

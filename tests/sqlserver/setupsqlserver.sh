@@ -12,7 +12,7 @@ elif [[ -f '/tests/sqlcmd' ]]; then
   PATH=/tests:$PATH
 else
   echo 'Assuming sqlcmd is in the path.'
-  find / -name 'sqlcmd'
+  find / -name 'sqlcmd' 2> /dev/null
 fi
 
 sqlcmd -U sa -P $SA_PASSWORD -i /tests/testdataSqlserver1.sql
