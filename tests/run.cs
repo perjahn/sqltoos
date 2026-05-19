@@ -1,21 +1,22 @@
 #!/usr/bin/env -S dotnet run
 
-#:package SharpCompress@0.40.0
+#:package SharpCompress@0.49.1
 
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using System.Threading;
 using SharpCompress.Readers;
+
+[JsonSerializable(typeof(GithubRelease))]
+[JsonSerializable(typeof(GithubReleaseAsset))]
+partial class GithubJsonContext : JsonSerializerContext
+{
+}
 
 class GithubRelease
 {
@@ -394,6 +395,7 @@ partial class Program
 
         if (!DownloadAsset("microsoft", "go-sqlcmd", $"^sqlcmd-linux-{arch}\\.tar\\.bz2$", sqlcmdpath))
         {
+            Log($"Couldn't find suitable sqlcmd: '{sqlcmdpath}'");
             return false;
         }
 
@@ -475,7 +477,7 @@ partial class Program
         GithubRelease? release;
         try
         {
-            release = JsonSerializer.Deserialize<GithubRelease>(json);
+            release = JsonSerializer.Deserialize(json, GithubJsonContext.Default.GithubRelease);
         }
         catch (JsonException ex)
         {
@@ -531,7 +533,7 @@ partial class Program
         var filename = Path.GetFileName(outputpath);
         var outputfolder = Path.GetDirectoryName(outputpath) ?? string.Empty;
 
-        using var reader = ReaderFactory.Open(stream);
+        using var reader = ReaderFactory.OpenReader(stream);
 
         while (reader.MoveToNextEntry())
         {
@@ -546,9 +548,9 @@ partial class Program
             {
                 _ = Directory.CreateDirectory(outputfolder);
 
-                using var outFile = File.Create(outputpath);
-                reader.WriteEntryTo(outFile);
-                Log($"Downloaded: '{url}' -> '{outputpath}'");
+                reader.WriteEntryToFile(outputpath);
+                var fileSize = new FileInfo(outputpath).Length;
+                Log($"Downloaded: '{url}' -> '{outputpath}' ({fileSize} bytes)");
             }
         }
 

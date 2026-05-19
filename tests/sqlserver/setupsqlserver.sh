@@ -4,15 +4,11 @@ echo 'Setting up sqlserver...'
 
 export SQLCMD_TELEMETRY='false'
 
-if [[ -f '/opt/mssql-tools/bin/sqlcmd' ]]; then
-  echo "Using sqlcmd in '/opt/mssql-tools/bin'"
-  PATH=/opt/mssql-tools/bin:$PATH
-elif [[ -f '/tests/sqlcmd' ]]; then
+if [ -f '/tests/sqlcmd' ]; then
   echo 'Using /tests/sqlcmd binary.'
   PATH=/tests:$PATH
 else
-  echo 'Assuming sqlcmd is in the path.'
-  find / -name 'sqlcmd' 2> /dev/null
+  echo 'sqlcmd not found.'
 fi
 
 sqlcmd -U sa -P $SA_PASSWORD -i /tests/testdataSqlserver1.sql

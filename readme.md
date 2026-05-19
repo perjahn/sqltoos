@@ -1,5 +1,6 @@
 [![Build](https://github.com/perjahn/sqltoos/actions/workflows/build.yml/badge.svg)](https://github.com/perjahn/sqltoos/actions/workflows/build.yml)
 [![CodeQL](https://github.com/perjahn/sqltoos/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/perjahn/sqltoos/actions/workflows/github-code-scanning/codeql)
+[![Automatic Dependency Submission](https://github.com/perjahn/sqltoos/actions/workflows/dependency-graph/auto-submission/badge.svg)](https://github.com/perjahn/sqltoos/actions/workflows/dependency-graph/auto-submission)
 
 sqltoos - cli tool for exporting data from relational databases and importing into opensearch.
 

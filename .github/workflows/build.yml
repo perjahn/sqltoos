@@ -20,11 +20,11 @@ jobs:
       SQLCMD_TELEMETRY: false
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: 10.0.100-preview.5.25277.114
+        dotnet-version: 10.0
     - name: Build
       run: ./run.cs
       working-directory: ./tests
