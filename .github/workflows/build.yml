@@ -21,10 +21,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v6
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v5
-      with:
-        dotnet-version: 10.0
     - name: Build
+      run: ./build.sh
+    - name: Test
       run: ./run.cs
       working-directory: ./tests

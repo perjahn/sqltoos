@@ -137,24 +137,27 @@ partial class Program
 
         var success = true;
 
-        _ = RunCommand("dotnet", "--version");
+        var imagetag = "sqltoos";
+        var resultfilename = "result.json";
+        var hostnetwork = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "--add-host host.docker.internal:host-gateway " : string.Empty;
 
         Log("Importing mysql:");
-        var resultfilename = "result.json";
-        if (File.Exists(resultfilename))
+        var envvars = $"-e SQLTOOS_CACERTFILE=/tests/{certfilename} {hostnetwork}-e SQLTOOS_PASSWORD -e SQLTOOS_CONNSTR -e SQLTOOS_JSONRESULTFILE=/tests/{resultfilename}";
+        var args = $"run -v {curdir}:/tests {envvars} {imagetag} /tests/configMysql.json";
+        var exitcode = RunCommand("docker", args,
+            new()
+            {
+                ["SQLTOOS_PASSWORD"] = password,
+                ["SQLTOOS_CONNSTR"] = $"Server=host.docker.internal;Database=testdb;User Id=root;Password={password}"
+            });
+        if (exitcode != 0 || !File.Exists(resultfilename))
         {
-            File.Delete(resultfilename);
-        }
-        var exitcode = RunCommand("dotnet", "run --project ../src configMysql.json",
-            new() { ["SQLTOOS_CACERTFILE"] = certfilename, ["SQLTOOS_PASSWORD"] = password, ["SQLTOOS_CONNSTR"] = $"Server=localhost;Database=testdb;User Id=root;Password={password}" });
-        if (exitcode != 0)
-        {
-            Log("Error: mysql run.");
+            Log($"Error: mysql run: Couldn't run {imagetag} '{args}'");
             success = false;
         }
         else
         {
-            if (!ShowJsonDiff("result.json", "result_mysql.json", "expected_mysql.json"))
+            if (!ShowJsonDiff(resultfilename, "result_mysql.json", "expected_mysql.json"))
             {
                 Log("Error: mysql diff.");
                 success = false;
@@ -166,16 +169,22 @@ partial class Program
         {
             File.Delete(resultfilename);
         }
-        exitcode = RunCommand("dotnet", "run --project ../src configPostgres.json",
-            new() { ["SQLTOOS_CACERTFILE"] = certfilename, ["SQLTOOS_PASSWORD"] = password, ["SQLTOOS_CONNSTR"] = $"Server=localhost;Database=testdb;User Id=postgres;Password={password}" });
+        envvars = $"-e SQLTOOS_CACERTFILE=/tests/{certfilename} {hostnetwork}-e SQLTOOS_PASSWORD -e SQLTOOS_CONNSTR -e SQLTOOS_JSONRESULTFILE=/tests/{resultfilename}";
+        args = $"run -v {curdir}:/tests {envvars} {imagetag} /tests/configPostgres.json";
+        exitcode = RunCommand("docker", args,
+            new()
+            {
+                ["SQLTOOS_PASSWORD"] = password,
+                ["SQLTOOS_CONNSTR"] = $"Server=host.docker.internal;Database=testdb;User Id=postgres;Password={password}"
+            });
         if (exitcode != 0)
         {
-            Log("Error: postgres run.");
+            Log($"Error: postgres run: Couldn't run {imagetag} '{args}'");
             success = false;
         }
         else
         {
-            if (!ShowJsonDiff("result.json", "result_postgres.json", "expected_postgres.json"))
+            if (!ShowJsonDiff(resultfilename, "result_postgres.json", "expected_postgres.json"))
             {
                 Log("Error: postgres diff.");
                 success = false;
@@ -187,16 +196,22 @@ partial class Program
         {
             File.Delete(resultfilename);
         }
-        exitcode = RunCommand("dotnet", "run --project ../src configSqlserver.json",
-            new() { ["SQLTOOS_CACERTFILE"] = certfilename, ["SQLTOOS_PASSWORD"] = password, ["SQLTOOS_CONNSTR"] = $"Server=localhost;TrustServerCertificate=true;Database=testdb;User Id=sa;Password={password}" });
+        envvars = $"-e SQLTOOS_CACERTFILE=/tests/{certfilename} {hostnetwork}-e SQLTOOS_PASSWORD -e SQLTOOS_CONNSTR -e SQLTOOS_JSONRESULTFILE=/tests/{resultfilename}";
+        args = $"run -v {curdir}:/tests {envvars} {imagetag} /tests/configSqlserver.json";
+        exitcode = RunCommand("docker", args,
+            new()
+            {
+                ["SQLTOOS_PASSWORD"] = password,
+                ["SQLTOOS_CONNSTR"] = $"Server=host.docker.internal;TrustServerCertificate=true;Database=testdb;User Id=sa;Password={password}"
+            });
         if (exitcode != 0)
         {
-            Log("Error: sqlserver run.");
+            Log($"Error: sqlserver run: Couldn't run {imagetag} '{args}'");
             success = false;
         }
         else
         {
-            if (!ShowJsonDiff("result.json", "result_sqlserver.json", "expected_sqlserver.json"))
+            if (!ShowJsonDiff(resultfilename, "result_sqlserver.json", "expected_sqlserver.json"))
             {
                 Log("Error: sqlserver diff.");
                 success = false;

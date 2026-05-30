@@ -180,9 +180,12 @@ namespace sqltoos
                 }
             }
 
-            var filename = "result.json";
-            Log($"Result saved to: '{filename}'");
-            File.WriteAllText(filename, JsonSerializer.Serialize(jsonresult, JsonOptionsIndented));
+            var filename = Environment.GetEnvironmentVariable("SQLTOOS_JSONRESULTFILE");
+            if (!string.IsNullOrEmpty(filename))
+            {
+                Log($"Result saved to: '{filename}'");
+                File.WriteAllText(filename, JsonSerializer.Serialize(jsonresult, JsonOptionsIndented));
+            }
         }
 
         static bool TryParseJsonObject(string json, out JsonObject jsonobject)

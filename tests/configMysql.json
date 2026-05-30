@@ -2,7 +2,7 @@
   "dbprovider": "mysql",
   "connstr": "",
   "sql": "select * from testtable",
-  "opensearchserverurl": "https://localhost:9200",
+  "opensearchserverurl": "https://host.docker.internal:9200",
   "cacertfile": "",
   "allowinvalidhttpscert": false,
   "username": "admin",
