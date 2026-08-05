@@ -578,9 +578,9 @@ partial class Program
         var dockerfile = @"FROM ubuntu
 WORKDIR /out
 RUN apt-get update && \
-    apt-get -y install gcc
+    apt-get -y install gcc libc6-dev
 RUN echo ""Compiling isatty work around for mysql"" && \
-    echo ""int isatty(int fd) { return 1; }"" | gcc -O2 -fpic -shared -ldl -o /out/isatty.so -xc - ";
+    echo ""int isatty(int fd) { return 1; }"" | gcc -O2 -fpic -shared -o /out/isatty.so -xc - ";
 
         File.WriteAllText("Dockerfile", dockerfile);
 
