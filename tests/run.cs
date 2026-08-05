@@ -1,6 +1,6 @@
 #!/usr/bin/env -S dotnet run
 
-#:package SharpCompress@0.49.1
+#:package SharpCompress@0.50.3
 
 using System.Diagnostics;
 using System.Net.Http.Headers;
